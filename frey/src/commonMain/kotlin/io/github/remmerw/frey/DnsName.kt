@@ -46,7 +46,7 @@ data class DnsName(
     val rawAce: String,
     val labels: MutableList<DnsLabel>,
     val rawLabels: MutableList<DnsLabel>
-) : Comparable<DnsName> {
+) {
 
 
     fun toBuffer(buffer: Buffer) {
@@ -75,7 +75,7 @@ data class DnsName(
             // Note that it is important that we append the result of DnsLabel.toString() to
             // the StringBuilder. As only the result of toString() is the safe label
             // representation.
-            val safeLabelRepresentation = labels.get(i).toString()
+            val safeLabelRepresentation = labels[i].toString()
             sb.append(safeLabelRepresentation)
             if (i != 0) {
                 sb.append('.')
@@ -84,18 +84,6 @@ data class DnsName(
         return sb.toString()
     }
 
-    override fun compareTo(other: DnsName): Int {
-        return ace.compareTo(other.ace)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other == null) return false
-        if (other is DnsName) {
-            return labels.stream().toArray()
-                .contentEquals(other.labels.stream().toArray()) // todo check
-        }
-        return false
-    }
 
     companion object {
         private val DNS_LABELS_EMPTY: MutableList<DnsLabel> = ArrayList<DnsLabel>()
@@ -119,15 +107,15 @@ data class DnsName(
 
                 // Strip potential trailing dot. N.B. that we require nameLength > 2, because we don't want to strip the one
                 // character string containing only a single dot to the empty string.
-                if (nameLength >= 2 && name.get(nameLastPos) == '.') {
+                if (nameLength >= 2 && name[nameLastPos] == '.') {
                     name = name.subSequence(0, nameLastPos).toString()
                 }
 
-                if (inAce) {
+                rawAce = if (inAce) {
                     // Name is already in ACE format.
-                    rawAce = name
+                    name
                 } else {
-                    rawAce = DnsUtility.toASCII(name)
+                    DnsUtility.toASCII(name)
                 }
             }
 
@@ -147,7 +135,7 @@ data class DnsName(
         }
 
         private fun create(rawLabels: MutableList<DnsLabel>): DnsName {
-            val labels: MutableList<DnsLabel> = ArrayList<DnsLabel>()
+            val labels: MutableList<DnsLabel> = ArrayList()
 
             var size = 0
             for (rawLabel in rawLabels) {
@@ -161,7 +149,6 @@ data class DnsName(
             return DnsName(ace, rawAce, labels, rawLabels)
         }
 
-        @JvmStatic
         fun root(): DnsName {
             if (ROOT == null) {
                 ROOT = create(".", true)
@@ -172,7 +159,7 @@ data class DnsName(
         private fun labelsToString(labels: MutableList<DnsLabel>, stringLength: Int): String {
             val sb = StringBuilder(stringLength)
             for (i in labels.indices.reversed()) {
-                sb.append(labels.get(i)).append('.')
+                sb.append(labels[i]).append('.')
             }
             sb.setLength(sb.length - 1)
             return sb.toString()
@@ -275,8 +262,8 @@ data class DnsName(
             if (c == 0) {
                 return root()
             }
+            val childLabelString =  data.copyOfRange(offset+1, offset+1+c).decodeToString()
 
-            val childLabelString = String(data, offset + 1, c)
             val child: DnsName = create(childLabelString, true)
 
             val parent: DnsName = parse(data, offset + 1 + c, jumps)
