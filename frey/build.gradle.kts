@@ -89,7 +89,7 @@ mavenPublishing {
 
     pom {
         name = "frey"
-        description = "DnsResolver library"
+        description = "DnsResolver client library"
         inceptionYear = "2025"
         url = "https://github.com/remmerw/frey/"
         licenses {
