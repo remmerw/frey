@@ -1,8 +1,8 @@
 package io.github.remmerw.frey
 
-import java.io.ByteArrayOutputStream
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
 import java.io.DataInputStream
-import java.io.DataOutputStream
 
 /**
  * A DNS question (request).
@@ -18,19 +18,18 @@ data class DnsQuestion(
      * @return The dns question.
      */
     fun toByteArray(): ByteArray {
-        val baos = ByteArrayOutputStream(512)
-        val dos = DataOutputStream(baos)
+        val dos = Buffer()
 
         try {
             name!!.writeToStream(dos)
-            dos.writeShort(type!!.value)
-            dos.writeShort(clazz!!.value or (if (unicastQuery) (1 shl 15) else 0))
+            dos.writeShort(type!!.value.toShort())
+            dos.writeShort((clazz!!.value or (if (unicastQuery) (1 shl 15) else 0)).toShort())
             dos.flush()
         } catch (e: Exception) {
             // Should never happen
             throw RuntimeException(e)
         }
-        return baos.toByteArray()
+        return dos.readByteArray()
     }
 
 

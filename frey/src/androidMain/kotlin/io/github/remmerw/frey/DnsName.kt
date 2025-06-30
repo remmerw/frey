@@ -1,5 +1,6 @@
 package io.github.remmerw.frey
 
+import kotlinx.io.Buffer
 import java.io.DataInputStream
 import java.io.OutputStream
 
@@ -49,24 +50,24 @@ data class DnsName(
 ) : Comparable<DnsName> {
 
 
-    fun writeToStream(os: OutputStream) {
+    fun writeToStream(os: Buffer) {
         for (i in labels.indices.reversed()) {
             labels[i].writeToStream(os)
         }
-        os.write(0)
+        os.writeByte(0)
     }
 
 
     fun size(): Int {
-        if (isRootLabel(ace!!)) {
-            return 1
+        return if (isRootLabel(ace)) {
+            1
         } else {
-            return ace.length + 2
+            ace.length + 2
         }
     }
 
     override fun toString(): String {
-        if (labels!!.size == 0) {
+        if (labels.size == 0) {
             return "."
         }
 

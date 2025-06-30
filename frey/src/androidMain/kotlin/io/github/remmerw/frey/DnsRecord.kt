@@ -1,6 +1,8 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.TXT
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -19,12 +21,14 @@ data class DnsRecord(
     val payload: DnsData?
 ) {
 
-    private fun toOutputStream(outputStream: OutputStream?) {
+    private fun toOutputStream(outputStream: OutputStream) {
         checkNotNull(this.payload) { "Empty Record has no byte representation" }
 
         val dos = DataOutputStream(outputStream)
 
-        name!!.writeToStream(dos)
+        val buffer = Buffer()
+        name.writeToStream(buffer)
+        dos.write(buffer.readByteArray())
         dos.writeShort(type!!.value)
         dos.writeShort(clazzValue)
         dos.writeInt(ttl.toInt())
@@ -34,7 +38,7 @@ data class DnsRecord(
     }
 
     fun toByteArray(): ByteArray {
-        val totalSize = (name!!.size()
+        val totalSize = (name.size()
                 + 10 // 2 byte short type + 2 byte short classValue + 4 byte int ttl + 2 byte short payload length.
                 + payload!!.length())
         val baos = ByteArrayOutputStream(totalSize)
