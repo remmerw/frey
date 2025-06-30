@@ -7,7 +7,6 @@ import java.io.DataOutputStream
 import java.io.OutputStream
 import java.net.DatagramPacket
 import java.net.InetAddress
-import java.util.Arrays
 
 /**
  * A DNS message as defined by RFC 1035. The message consists of a header and
@@ -152,7 +151,7 @@ data class DnsMessage(
 
     override fun hashCode(): Int {
         val bytes = serialize()
-        return Arrays.hashCode(bytes)
+        return bytes.hashCode()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -164,7 +163,7 @@ data class DnsMessage(
         }
         val otherBytes = other.serialize()
         val myBytes = serialize()
-        return Arrays.equals(myBytes, otherBytes)
+        return myBytes.contentEquals(otherBytes)
     }
 
     /**
