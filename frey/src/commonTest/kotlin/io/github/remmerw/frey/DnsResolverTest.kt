@@ -1,5 +1,6 @@
 package io.github.remmerw.frey
 
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -8,7 +9,7 @@ import kotlin.test.assertNotNull
 class DnsResolverTest {
 
     @Test
-    fun test() {
+    fun test() : Unit = runBlocking {
         val resolver = DnsResolver()
         val result = resolver.resolveDnsAddr("bootstrap.libp2p.io")
         assertNotNull(result)

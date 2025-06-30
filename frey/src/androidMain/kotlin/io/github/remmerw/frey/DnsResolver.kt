@@ -1,20 +1,18 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.TXT
-import java.net.Inet4Address
-import java.net.Inet6Address
-import java.net.InetAddress
+import io.ktor.network.sockets.InetSocketAddress
 
 
 class DnsResolver {
     private val dnsClient = DnsClient({
-        val list = ArrayList<InetAddress>()
+        val list = ArrayList<InetSocketAddress>()
         list.addAll(STATIC_IPV4_DNS_SERVERS)
         list.addAll(STATIC_IPV6_DNS_SERVERS)
         list
     }, DnsCache())
 
-    private fun retrieveTxtRecords(host: String): MutableSet<String> {
+    private suspend fun retrieveTxtRecords(host: String): MutableSet<String> {
         val txtRecords: MutableSet<String> = mutableSetOf()
         try {
             val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
@@ -35,7 +33,7 @@ class DnsResolver {
         return txtRecords
     }
 
-    fun resolveDnsLink(host: String): String {
+    suspend fun resolveDnsLink(host: String): String {
         val txtRecords = retrieveTxtRecords("_dnslink.$host")
         for (txtRecord in txtRecords) {
             if (txtRecord.startsWith(DNS_LINK)) {
@@ -45,7 +43,7 @@ class DnsResolver {
         return ""
     }
 
-    fun resolveDnsAddr(host: String): Set<String> {
+    suspend fun resolveDnsAddr(host: String): Set<String> {
         val multiAddresses: MutableSet<String> = mutableSetOf()
 
         val txtRecords = retrieveTxtRecords("_dnsaddr.$host")
@@ -61,14 +59,14 @@ class DnsResolver {
 
 
     companion object {
-        val STATIC_IPV4_DNS_SERVERS: MutableSet<Inet4Address> = mutableSetOf()
-        val STATIC_IPV6_DNS_SERVERS: MutableSet<Inet6Address> = mutableSetOf()
+        val STATIC_IPV4_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
+        val STATIC_IPV6_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
         private const val DNS_ADDR = "dnsaddr="
         private const val DNS_LINK = "dnslink="
 
         init {
             try {
-                STATIC_IPV4_DNS_SERVERS.add(DnsUtility.Companion.ipv4From("8.8.8.8"))
+                STATIC_IPV4_DNS_SERVERS.add(InetSocketAddress("8.8.8.8", 53))
                 // CLOUDFLARE_DNS_SERVER_IP4 = "1.1.1.1";
             } catch (e: IllegalArgumentException) {
                 e.printStackTrace()
@@ -76,7 +74,7 @@ class DnsResolver {
             }
 
             try {
-                STATIC_IPV6_DNS_SERVERS.add(DnsUtility.Companion.ipv6From("[2001:4860:4860::8888]"))
+                STATIC_IPV6_DNS_SERVERS.add(InetSocketAddress("[2001:4860:4860::8888]", 53))
             } catch (e: IllegalArgumentException) {
                 e.printStackTrace()
                 // todo LogUtils.error(TAG, "Could not add static IPv6 DNS Server " + e.getMessage());

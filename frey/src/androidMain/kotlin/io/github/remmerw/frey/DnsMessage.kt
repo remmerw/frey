@@ -24,52 +24,52 @@ data class DnsMessage(
     fun writeTo(buffer: Buffer) {
         val bytes = serialize()
         buffer.writeShort(bytes.size.toShort())
-        buffer.write(bytes)
+        buffer.write(bytes.readByteArray())
     }
 
 
-    fun serialize(): ByteArray {
-        val dos = Buffer()
+    fun serialize(): Buffer {
+        val buffer = Buffer()
         val header = calculateHeaderBitmap()
 
-            dos.writeShort(id.toShort())
-            dos.writeShort(header.toShort())
-            if (questions == null) {
-                dos.writeShort(0)
-            } else {
-                dos.writeShort(questions.size.toShort())
+        buffer.writeShort(id.toShort())
+        buffer.writeShort(header.toShort())
+        if (questions == null) {
+            buffer.writeShort(0)
+        } else {
+            buffer.writeShort(questions.size.toShort())
+        }
+        buffer.writeShort(answerSection.size.toShort())
+        if (authoritySection == null) {
+            buffer.writeShort(0)
+        } else {
+            buffer.writeShort(authoritySection.size.toShort())
+        }
+        if (additionalSection == null) {
+            buffer.writeShort(0)
+        } else {
+            buffer.writeShort(additionalSection.size.toShort())
+        }
+        if (questions != null) {
+            for (question in questions) {
+                buffer.write(question.toByteArray())
             }
-            dos.writeShort(answerSection.size.toShort())
-            if (authoritySection == null) {
-                dos.writeShort(0)
-            } else {
-                dos.writeShort(authoritySection.size.toShort())
+        }
+        for (answer in answerSection) {
+            buffer.write(answer.toByteArray())
+        }
+        if (authoritySection != null) {
+            for (nameserverDnsRecord in authoritySection) {
+                buffer.write(nameserverDnsRecord.toByteArray())
             }
-            if (additionalSection == null) {
-                dos.writeShort(0)
-            } else {
-                dos.writeShort(additionalSection.size.toShort())
+        }
+        if (additionalSection != null) {
+            for (additionalResourceDnsRecord in additionalSection) {
+                buffer.write(additionalResourceDnsRecord.toByteArray())
             }
-            if (questions != null) {
-                for (question in questions) {
-                    dos.write(question.toByteArray())
-                }
-            }
-            for (answer in answerSection) {
-                dos.write(answer.toByteArray())
-            }
-            if (authoritySection != null) {
-                for (nameserverDnsRecord in authoritySection) {
-                    dos.write(nameserverDnsRecord.toByteArray())
-                }
-            }
-            if (additionalSection != null) {
-                for (additionalResourceDnsRecord in additionalSection) {
-                    dos.write(additionalResourceDnsRecord.toByteArray())
-                }
-            }
+        }
 
-        return dos.readByteArray()
+        return buffer
     }
 
     private fun calculateHeaderBitmap(): Int {
@@ -141,7 +141,7 @@ data class DnsMessage(
         }
         val otherBytes = other.serialize()
         val myBytes = serialize()
-        return myBytes.contentEquals(otherBytes)
+        return myBytes.readByteArray().contentEquals(otherBytes.readByteArray())
     }
 
     /**

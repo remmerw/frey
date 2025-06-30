@@ -1,26 +1,24 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsName.Companion.root
-import io.ktor.utils.io.core.read
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.Datagram
+import io.ktor.network.sockets.InetSocketAddress
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.openReadChannel
+import io.ktor.network.sockets.openWriteChannel
+import io.ktor.utils.io.readByteArray
+import io.ktor.utils.io.readShort
+import io.ktor.utils.io.writeBuffer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.net.DatagramPacket
-import java.net.DatagramSocket
 import java.net.IDN
-import java.net.Inet4Address
-import java.net.Inet6Address
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.Socket
-import java.net.SocketAddress
-import java.net.SocketException
 
 interface DnsUtility {
     companion object {
 
-        fun query(message: DnsMessage, address: InetAddress): DnsQueryResult {
+        suspend fun query(message: DnsMessage, address: InetSocketAddress): DnsQueryResult {
             try {
                 return DnsQueryResult(queryUdp(message, address))
             } catch (_: Exception) {
@@ -30,67 +28,60 @@ interface DnsUtility {
             return DnsQueryResult(queryTcp(message, address))
         }
 
-        private fun asDatagram(query: DnsMessage, address: InetAddress): DatagramPacket {
+        private fun asDatagram(query: DnsMessage, address: InetSocketAddress): Datagram {
             val bytes = query.serialize()
-            return DatagramPacket(bytes, bytes.size, address, 53)
+            return Datagram(bytes, address)
         }
 
-        private fun queryUdp(query: DnsMessage, address: InetAddress): DnsMessage {
+        private suspend fun queryUdp(
+            query: DnsMessage,
+            address: InetSocketAddress
+        ): DnsMessage { // todo connect timeout missing
             var packet = asDatagram(query, address)
-            val buffer = ByteArray(UDP_PAYLOAD_SIZE)
-            createDatagramSocket().use { socket ->
-                socket.setSoTimeout(DNS_TIMEOUT)
-                socket.send(packet)
-                packet = DatagramPacket(buffer, buffer.size)
-                socket.receive(packet)
-                val dnsMessage: DnsMessage = DnsMessage.Companion.parse(packet.data)
-                check(dnsMessage.id == query.id) { "The response's ID doesn't matches the request ID" }
-                return dnsMessage
-            }
-        }
 
-        private fun queryTcp(message: DnsMessage, address: InetAddress): DnsMessage {
-            createSocket().use { socket ->
-                val socketAddress: SocketAddress = InetSocketAddress(address, 53)
-                socket.connect(socketAddress, DNS_TIMEOUT)
-                socket.setSoTimeout(DNS_TIMEOUT)
-                val dos = DataOutputStream(socket.getOutputStream())
-                val buffer = Buffer() // todo
-                message.writeTo(buffer)
-                dos.write(buffer.readByteArray())
-                dos.flush()
-                val dis = DataInputStream(socket.getInputStream())
-                val length = dis.readUnsignedShort()
-                val data = ByteArray(length)
-                var read = 0
-                while (read < length) {
-                    read += dis.read(data, read, length - read)
+            val selectorManager = SelectorManager(Dispatchers.IO)
+
+            try {
+                aSocket(selectorManager).udp().connect(
+                    address, null
+                ).use { socket ->
+                    socket.send(packet)
+                    packet = socket.receive()
+                    val data = packet.packet.readByteArray()
+                    val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
+                    check(dnsMessage.id == query.id) { "The response's ID doesn't matches the request ID" }
+                    return dnsMessage
                 }
-                val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
-                check(dnsMessage.id == message.id) { "The response's ID doesn't matches the request ID" }
-                return dnsMessage
+            } finally {
+                selectorManager.close()
             }
         }
 
-        /**
-         * Create a [Socket] using the system default [javax.net.SocketFactory].
-         *
-         * @return The new [Socket] instance
-         */
-        private fun createSocket(): Socket {
-            return Socket()
+
+        private suspend fun queryTcp(message: DnsMessage, address: InetSocketAddress): DnsMessage {
+            val selectorManager = SelectorManager(Dispatchers.IO)
+            try {
+                aSocket(selectorManager).tcp().connect(address) {
+                    socketTimeout = DNS_TIMEOUT.toLong()
+                }.use { socket ->
+
+                    val sendChannel = socket.openWriteChannel(autoFlush = true)
+                    val buffer = Buffer() // todo
+                    message.writeTo(buffer)
+                    sendChannel.writeBuffer(buffer)
+
+                    val receiveChannel = socket.openReadChannel()
+                    val length = receiveChannel.readShort()
+                    val data = receiveChannel.readByteArray(length.toInt())
+                    val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
+                    check(dnsMessage.id == message.id) { "The response's ID doesn't matches the request ID" }
+                    return dnsMessage
+                }
+            } finally {
+                selectorManager.close()
+            }
         }
 
-        /**
-         * Create a [DatagramSocket] using the system defaults.
-         *
-         * @return The new [DatagramSocket] instance
-         * @throws SocketException If creation of the [DatagramSocket] fails
-         */
-        @Throws(SocketException::class)
-        private fun createDatagramSocket(): DatagramSocket {
-            return DatagramSocket()
-        }
 
         fun toASCII(input: String): String {
             // Special case if input is ".", i.e. a string containing only a single dot character. This is a workaround for
@@ -101,29 +92,6 @@ interface DnsUtility {
             }
 
             return IDN.toASCII(input)
-        }
-
-        /**
-         * @noinspection SameParameterValue
-         */
-        fun ipv4From(cs: CharSequence): Inet4Address {
-            val inetAddress: InetAddress = InetAddress.getByName(cs.toString())
-
-            if (inetAddress is Inet4Address) {
-                return inetAddress
-            }
-            throw IllegalArgumentException()
-        }
-
-        /**
-         * @noinspection SameParameterValue
-         */
-        fun ipv6From(cs: CharSequence): Inet6Address {
-            val inetAddress: InetAddress = InetAddress.getByName(cs.toString())
-            if (inetAddress is Inet6Address) {
-                return inetAddress
-            }
-            throw IllegalArgumentException()
         }
 
         const val UDP_PAYLOAD_SIZE: Int = 1024
