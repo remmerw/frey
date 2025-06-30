@@ -5,12 +5,11 @@ import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.util.concurrent.CopyOnWriteArraySet
-import java.util.function.Supplier
 
 
 class DnsResolver {
-    private val dnsClient = DnsClient(Supplier {
-        val list = ArrayList<InetAddress?>()
+    private val dnsClient = DnsClient({
+        val list = ArrayList<InetAddress>()
         list.addAll(STATIC_IPV4_DNS_SERVERS)
         list.addAll(STATIC_IPV6_DNS_SERVERS)
         list
@@ -87,10 +86,10 @@ class DnsResolver {
 
 
     companion object {
-        val STATIC_IPV4_DNS_SERVERS: MutableSet<Inet4Address?> =
-            CopyOnWriteArraySet<Inet4Address?>()
-        val STATIC_IPV6_DNS_SERVERS: MutableSet<Inet6Address?> =
-            CopyOnWriteArraySet<Inet6Address?>()
+        val STATIC_IPV4_DNS_SERVERS: MutableSet<Inet4Address> =
+            CopyOnWriteArraySet<Inet4Address>()
+        val STATIC_IPV6_DNS_SERVERS: MutableSet<Inet6Address> =
+            CopyOnWriteArraySet<Inet6Address>()
         private const val DNS_ADDR = "dnsaddr="
         private const val DNS_LINK = "dnslink="
 

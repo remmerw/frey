@@ -13,7 +13,7 @@ import kotlin.random.Random
  * This circumvents the missing javax.naming package on android.
  */
 class DnsClient internal constructor(
-    private val settingSupplier: Supplier<MutableList<InetAddress?>>,
+    private val settingSupplier: Supplier<MutableList<InetAddress>>,
     val dnsCache: DnsCache
 ) {
     /**
@@ -22,8 +22,8 @@ class DnsClient internal constructor(
     private val random: Random = Random
 
 
-    private val nonRaServers: MutableSet<InetAddress?> = Collections.newSetFromMap<InetAddress?>(
-        ConcurrentHashMap<InetAddress?, Boolean?>(4)
+    private val nonRaServers: MutableSet<InetAddress> = Collections.newSetFromMap(
+        ConcurrentHashMap(4)
     )
 
 
@@ -75,7 +75,7 @@ class DnsClient internal constructor(
         return responseMessage
     }
 
-    private val serverAddresses: MutableList<InetAddress?>
+    private val serverAddresses: MutableList<InetAddress>
         get() = settingSupplier.get()
 
 
