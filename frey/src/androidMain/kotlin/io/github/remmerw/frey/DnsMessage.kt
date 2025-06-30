@@ -374,20 +374,20 @@ data class DnsMessage(
             val nameserverCount = dis.readUnsignedShort()
             val additionalResourceRecordCount = dis.readUnsignedShort()
             val questions: MutableList<DnsQuestion> = mutableListOf()
-            repeat (questionCount) {
+            repeat(questionCount) {
                 questions.add(DnsQuestion.Companion.parse(dis, data))
             }
             val answerSection: MutableList<DnsRecord> = mutableListOf()
-            repeat (answerCount) {
+            repeat(answerCount) {
                 answerSection.add(DnsRecord.Companion.parse(dis, data))
             }
             val authoritySection: MutableList<DnsRecord> = mutableListOf()
-            repeat (nameserverCount) {
+            repeat(nameserverCount) {
                 authoritySection.add(DnsRecord.Companion.parse(dis, data))
             }
             val additionalSection: MutableList<DnsRecord> =
                 mutableListOf()
-            repeat (additionalResourceRecordCount) {
+            repeat(additionalResourceRecordCount) {
                 additionalSection.add(DnsRecord.Companion.parse(dis, data))
             }
             val optRrPosition: Int = getOptRrPosition(additionalSection)

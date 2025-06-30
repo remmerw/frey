@@ -30,7 +30,8 @@ import java.io.OutputStream
  *
  * @see DnsLabel
  */
-data class DnsName(val ace: String,
+data class DnsName(
+    val ace: String,
     /**
      * Returns the raw ACE version of this DNS name. That is, the version as it was
      * received over the wire. Most notably, this version may include uppercase

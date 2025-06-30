@@ -1,6 +1,7 @@
 package io.github.remmerw.frey
 
-import java.util.concurrent.locks.ReentrantLock
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 import kotlin.math.min
 
 
@@ -11,8 +12,9 @@ class DnsCache {
     /**
      * The backend cache.
      */
-    private val backend: LinkedHashMap<DnsMessage, DnsQueryResult>
-    private val reentrantLock = ReentrantLock()
+    private val backend: LinkedHashMap<DnsMessage, DnsQueryResult> =
+        DnsMessageDnsQueryResultLinkedHashMap()
+    private val reentrantLock = reentrantLock()
 
     /**
      * Internal miss count.
@@ -30,27 +32,19 @@ class DnsCache {
     private var hitCount = 0L
 
 
-    init {
-        backend = DnsMessageDnsQueryResultLinkedHashMap()
-    }
-
-
     private fun putNormalized(q: DnsMessage, result: DnsQueryResult) {
         if (result.response.receiveTimestamp <= 0L) {
             return
         }
-        reentrantLock.lock()
-        try {
+        reentrantLock.withLock {
             backend.put(q, DnsQueryResult(result.response))
-        } finally {
-            reentrantLock.unlock()
         }
     }
 
 
     private fun getNormalized(q: DnsMessage): DnsQueryResult? {
-        reentrantLock.lock()
-        try {
+        reentrantLock.withLock {
+
             val result = backend[q]
 
             if (result == null) {
@@ -75,8 +69,6 @@ class DnsCache {
                 hitCount++
                 return result
             }
-        } finally {
-            reentrantLock.unlock()
         }
     }
 

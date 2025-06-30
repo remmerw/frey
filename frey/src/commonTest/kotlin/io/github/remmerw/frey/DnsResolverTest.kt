@@ -6,7 +6,7 @@ import kotlin.test.assertNotNull
 
 
 class DnsResolverTest {
-    
+
     @Test
     fun test() {
         val resolver = DnsResolver()
