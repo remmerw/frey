@@ -3,6 +3,7 @@ package io.github.remmerw.frey
 import kotlinx.io.Buffer
 import kotlinx.io.Source
 import kotlinx.io.readByteArray
+import kotlin.math.min
 
 /**
  * A DNS message as defined by RFC 1035. The message consists of a header and
@@ -116,7 +117,7 @@ data class DnsMessage(
         get() {
             var answersMinTtlCache = Long.MAX_VALUE
             for (r in answerSection) {
-                answersMinTtlCache = kotlin.math.min(answersMinTtlCache, r.ttl)
+                answersMinTtlCache = min(answersMinTtlCache, r.ttl)
             }
             return answersMinTtlCache
         }
