@@ -2,10 +2,8 @@ package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsMessage.RESPONSE_CODE
 import io.github.remmerw.frey.DnsName.Companion.from
+import io.ktor.util.collections.ConcurrentSet
 import java.net.InetAddress
-import java.util.Collections
-import java.util.concurrent.ConcurrentHashMap
-import java.util.function.Supplier
 import kotlin.random.Random
 
 /**
@@ -13,7 +11,7 @@ import kotlin.random.Random
  * This circumvents the missing javax.naming package on android.
  */
 class DnsClient internal constructor(
-    private val settingSupplier: Supplier<MutableList<InetAddress>>,
+    private val settingSupplier: () -> (MutableList<InetAddress>),
     val dnsCache: DnsCache
 ) {
     /**
@@ -21,11 +19,7 @@ class DnsClient internal constructor(
      */
     private val random: Random = Random
 
-
-    private val nonRaServers: MutableSet<InetAddress> = Collections.newSetFromMap(
-        ConcurrentHashMap(4)
-    )
-
+    private val nonRaServers: MutableSet<InetAddress> = ConcurrentSet()
 
     fun onResponse(requestMessage: DnsMessage, responseMessage: DnsQueryResult) {
         val q = requestMessage.question
@@ -76,7 +70,7 @@ class DnsClient internal constructor(
     }
 
     private val serverAddresses: MutableList<InetAddress>
-        get() = settingSupplier.get()
+        get() = settingSupplier.invoke()
 
 
     private fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
@@ -97,7 +91,7 @@ class DnsClient internal constructor(
         var ioException: Exception? = null
         for (dns in dnsServerAddresses) {
             if (nonRaServers.contains(dns)) {
-                println("Skipping " + dns + " because it was marked as \"recursion not available\"") // todo
+                println("Skipping $dns because it was marked as \"recursion not available\"")  // todo
                 continue
             }
 
