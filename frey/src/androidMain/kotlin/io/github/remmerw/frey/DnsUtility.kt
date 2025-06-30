@@ -1,6 +1,9 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsName.Companion.root
+import io.ktor.utils.io.core.read
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.DatagramPacket
@@ -47,7 +50,9 @@ interface DnsUtility {
                 socket.connect(socketAddress, DNS_TIMEOUT)
                 socket.setSoTimeout(DNS_TIMEOUT)
                 val dos = DataOutputStream(socket.getOutputStream())
-                message.writeTo(dos)
+                val buffer = Buffer() // todo
+                message.writeTo(buffer)
+                dos.write(buffer.readByteArray())
                 dos.flush()
                 val dis = DataInputStream(socket.getInputStream())
                 val length = dis.readUnsignedShort()

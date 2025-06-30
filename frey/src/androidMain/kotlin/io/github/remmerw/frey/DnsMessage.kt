@@ -1,10 +1,9 @@
 package io.github.remmerw.frey
 
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.io.OutputStream
 import java.net.DatagramPacket
 import java.net.InetAddress
 
@@ -31,36 +30,34 @@ data class DnsMessage(
     }
 
 
-    fun writeTo(buffer: OutputStream) {
+    fun writeTo(buffer: Buffer) {
         val bytes = serialize()
-        val dataOutputStream = DataOutputStream(buffer)
-        dataOutputStream.writeShort(bytes.size)
-        dataOutputStream.write(bytes)
+        buffer.writeShort(bytes.size.toShort())
+        buffer.write(bytes)
     }
 
 
     private fun serialize(): ByteArray {
-        val baos = ByteArrayOutputStream(512)
-        val dos = DataOutputStream(baos)
+        val dos = Buffer()
         val header = calculateHeaderBitmap()
-        try {
-            dos.writeShort(id.toShort().toInt())
-            dos.writeShort(header.toShort().toInt())
+
+            dos.writeShort(id.toShort())
+            dos.writeShort(header.toShort())
             if (questions == null) {
                 dos.writeShort(0)
             } else {
-                dos.writeShort(questions.size.toShort().toInt())
+                dos.writeShort(questions.size.toShort())
             }
-            dos.writeShort(answerSection.size.toShort().toInt())
+            dos.writeShort(answerSection.size.toShort())
             if (authoritySection == null) {
                 dos.writeShort(0)
             } else {
-                dos.writeShort(authoritySection.size.toShort().toInt())
+                dos.writeShort(authoritySection.size.toShort())
             }
             if (additionalSection == null) {
                 dos.writeShort(0)
             } else {
-                dos.writeShort(additionalSection.size.toShort().toInt())
+                dos.writeShort(additionalSection.size.toShort())
             }
             if (questions != null) {
                 for (question in questions) {
@@ -80,12 +77,8 @@ data class DnsMessage(
                     dos.write(additionalResourceDnsRecord.toByteArray())
                 }
             }
-            dos.flush()
-        } catch (e: Exception) {
-            // Should never happen.
-            throw AssertionError(e)
-        }
-        return baos.toByteArray()
+
+        return dos.readByteArray()
     }
 
     private fun calculateHeaderBitmap(): Int {
