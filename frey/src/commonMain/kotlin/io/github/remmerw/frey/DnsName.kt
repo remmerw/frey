@@ -262,7 +262,7 @@ data class DnsName(
             if (c == 0) {
                 return root()
             }
-            val childLabelString =  data.copyOfRange(offset+1, offset+1+c).decodeToString()
+            val childLabelString = data.copyOfRange(offset + 1, offset + 1 + c).decodeToString()
 
             val child: DnsName = create(childLabelString, true)
 

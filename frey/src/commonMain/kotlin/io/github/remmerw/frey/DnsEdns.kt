@@ -47,7 +47,7 @@ data class DnsEdns(
             }
 
             fun from(optionCode: Int): OptionCode {
-                var res = INVERSE_LUT.get(optionCode)
+                var res = INVERSE_LUT[optionCode]
                 if (res == null) res = UNKNOWN
                 return res
             }
@@ -60,7 +60,7 @@ data class DnsEdns(
 
 
         fun setUdpPayloadSize(udpPayloadSize: Int): EdnsBuilder {
-            require(udpPayloadSize <= 0xffff) { "UDP payload size must not be greater than 65536, was " + udpPayloadSize }
+            require(udpPayloadSize <= 0xffff) { "UDP payload size must not be greater than 65536, was $udpPayloadSize" }
             this.udpPayloadSize = udpPayloadSize
             return this
         }
@@ -76,6 +76,7 @@ data class DnsEdns(
     }
 
 
+    @Suppress("ArrayInDataClass")
     data class Option(val optionCode: Int, val optionLength: Int, val optionData: ByteArray) {
 
         fun transferTo(buffer: Buffer) {
@@ -96,13 +97,11 @@ data class DnsEdns(
 
             fun parse(intOptionCode: Int, optionData: ByteArray): Option {
                 val optionCode = OptionCode.Companion.from(intOptionCode)
-                val res: Option
-                if (optionCode == OptionCode.NSID) {
-                    res = create(optionData, optionCode)
+                return if (optionCode == OptionCode.NSID) {
+                    create(optionData, optionCode)
                 } else {
-                    res = create(intOptionCode, optionData)
+                    create(intOptionCode, optionData)
                 }
-                return res
             }
         }
     }

@@ -1,6 +1,5 @@
 package io.github.remmerw.frey
 
-import io.github.remmerw.frey.DnsData.TXT
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
 
@@ -14,7 +13,7 @@ data class DnsRecord(
      *
      * @return The payload data.
      */
-    val payload: DnsData?
+    val payload: DnsData
 ) {
 
     private fun toBuffer(buffer: Buffer) {
@@ -32,7 +31,7 @@ data class DnsRecord(
     fun toByteArray(): ByteArray {
         val totalSize = (name.size()
                 + 10 // 2 byte short type + 2 byte short classValue + 4 byte int ttl + 2 byte short payload length.
-                + payload!!.length())
+                + payload.length())
 
         val buffer = Buffer()
         toBuffer(buffer)
@@ -59,21 +58,6 @@ data class DnsRecord(
         return ((q.type == type) || (q.type == TYPE.ANY)) &&
                 ((q.clazz == clazz) || (q.clazz == CLASS.ANY)) &&
                 q.name == name
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is DnsRecord) {
-            return false
-        }
-        if (other === this) {
-            return true
-        }
-        if (name != other.name) return false
-        if (type != other.type) return false
-        if (clazz != other.clazz) return false
-        // Note that we do not compare the TTL here, since we consider two Records with everything but the TTL equal to
-        // be equal too.
-        return this.payload == other.payload
     }
 
 
@@ -197,7 +181,7 @@ data class DnsRecord(
              * @return The symbolic class instance.
              */
             fun getClass(value: Int): CLASS? {
-                return INVERSE_LUT.get(value)
+                return INVERSE_LUT[value]
             }
         }
     }
@@ -208,7 +192,7 @@ data class DnsRecord(
             type: TYPE?,
             clazzValue: Int,
             ttl: Long,
-            payloadDnsData: DnsData?
+            payloadDnsData: DnsData
         ): DnsRecord {
             return DnsRecord(name, type, CLASS.NONE, clazzValue, ttl, payloadDnsData)
         }
@@ -232,8 +216,10 @@ data class DnsRecord(
                     dis.readShort().toInt()
             val payloadLength = dis.readShort().toInt()
             val payloadDnsData: DnsData = when (type) {
-                TYPE.TXT -> TXT.parse(dis, payloadLength)
+                TYPE.TXT -> DnsData.TXT.parse(dis, payloadLength)
                 TYPE.OPT -> DnsData.OPT.parse(dis, payloadLength)
+                TYPE.AAAA -> DnsData.AAAA.parse(dis, payloadLength)
+                TYPE.A -> DnsData.A.parse(dis, payloadLength)
                 else -> DnsData.UNKNOWN.parse(dis, payloadLength)
             }
             return DnsRecord(name, type, clazz, clazzValue, ttl, payloadDnsData)

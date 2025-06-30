@@ -20,7 +20,7 @@ import kotlinx.io.Buffer
  * @see [RFC 5890 § 2.2. DNS-Related Terminology](https://tools.ietf.org/html/rfc5890.section-2.2)
  */
 
-data class DnsLabel(val label: String) : Comparable<DnsLabel> {
+data class DnsLabel(val label: String) {
     fun length(): Int {
         return toSafeString().length
     }
@@ -34,14 +34,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
 
 
     override fun toString(): String {
-        return toSafeRepesentation(label)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is DnsLabel) {
-            return false
-        }
-        return label == other.label
+        return toSafeRepresentation(label)
     }
 
     fun asLowercaseVariant(): DnsLabel {
@@ -55,12 +48,6 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         buffer.write(byteCache, 0, byteCache.size)
     }
 
-    override fun compareTo(other: DnsLabel): Int {
-        val myCanonical = asLowercaseVariant().label
-        val otherCanonical = other.asLowercaseVariant().label
-
-        return myCanonical.compareTo(otherCanonical)
-    }
 
     companion object {
         /**
@@ -87,7 +74,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         }
 
         fun isReservedLdhLabelInternal(label: String): Boolean {
-            return label.length >= 4 && label.get(2) == '-' && label.get(3) == '-'
+            return label.length >= 4 && label[2] == '-' && label[3] == '-'
         }
 
 
@@ -107,7 +94,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
                 return false
             }
 
-            if (isLeadingOrTrailingHypenLabelInternal(label)) {
+            if (isLeadingOrTrailingLabelInternal(label)) {
                 return false
             }
 
@@ -120,10 +107,10 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
             if (isReservedLdhLabel(label)) {
                 // Label starts with '??--'. Now let us see if it is a XN-Label, starting with 'xn--', but be aware that the
                 // 'xn' part is case insensitive. The XnLabel.isXnLabelInternal(String) method takes care of this.
-                if (isXnLabelInternal(label)) {
-                    return fromXnLabel(label)
+                return if (isXnLabelInternal(label)) {
+                    fromXnLabel(label)
                 } else {
-                    return create(label)
+                    create(label)
                 }
             }
             return create(label)
@@ -141,7 +128,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         }
 
         fun isUnderscoreLabelInternal(label: String): Boolean {
-            return label.get(0) == '_'
+            return label[0] == '_'
         }
 
         fun fromNonLdhLabel(label: String): DnsLabel {
@@ -149,7 +136,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
                 return create(label)
             }
 
-            isLeadingOrTrailingHypenLabelInternal(label)
+            isLeadingOrTrailingLabelInternal(label)
 
             return create(label)
         }
@@ -169,15 +156,15 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
             return string.lowercase().startsWith("xn--")
         }
 
-        private fun toSafeRepesentation(dnsLabel: String): String {
+        private fun toSafeRepresentation(dnsLabel: String): String {
             if (consistsOnlyOfLettersDigitsHypenAndUnderscore(dnsLabel)) {
                 // This label is safe, nothing to do.
                 return dnsLabel
             }
 
-            val sb: StringBuilder = StringBuilder(2 * dnsLabel.length)
+            val sb = StringBuilder(2 * dnsLabel.length)
             for (i in 0..dnsLabel.length) {
-                val c: Char = dnsLabel.get(i)
+                val c: Char = dnsLabel[i]
                 if (isLdhOrMaybeUnderscore(c, true)) {
                     sb.append(c)
                     continue
@@ -232,7 +219,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
             underscore: Boolean
         ): Boolean {
             for (i in 0..<string.length) {
-                val c: Char = string.get(i)
+                val c: Char = string[i]
                 if (isLdhOrMaybeUnderscore(c, underscore)) {
                     continue
                 }
@@ -249,7 +236,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
             return consistsOnlyOfLdhAndMaybeUnderscore(string, true)
         }
 
-        fun isLeadingOrTrailingHypenLabelInternal(label: String): Boolean {
+        fun isLeadingOrTrailingLabelInternal(label: String): Boolean {
             if (label.isEmpty()) {
                 return false
             }
@@ -258,7 +245,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
                 return true
             }
 
-            return label.get(label.length - 1) == '-'
+            return label[label.length - 1] == '-'
         }
     }
 }

@@ -13,33 +13,27 @@ class DnsResolver {
     }, DnsCache())
 
 
-    // TODO not yet working
-    suspend fun retrieveARecord(host: String): List<String> {
-        val response: MutableList<String> = mutableListOf()
+    suspend fun retrieveARecord(host: String): List<ByteArray> {
+        val response: MutableList<ByteArray> = mutableListOf()
         val result = dnsClient.query(host, DnsRecord.TYPE.A)
         for (dnsRecord in result.response.answerSection) {
             val payload = dnsRecord.payload
-            if (payload is DnsData.UNKNOWN) {
-                response.add(payload.bytes().decodeToString())
-            } else {
-                println(payload.toString()) // todo
+            if (payload is DnsData.A) {
+                response.add(payload.bytes())
             }
         }
         return response
     }
 
 
-    // TODO not yet working
-    suspend fun retrieveAAAARecord(host: String): List<String> {
-        val response: MutableList<String> = mutableListOf()
+    suspend fun retrieveAAAARecord(host: String): List<ByteArray> {
+        val response: MutableList<ByteArray> = mutableListOf()
         val result = dnsClient.query(host, DnsRecord.TYPE.AAAA)
 
         for (dnsRecord in result.response.answerSection) {
             val payload = dnsRecord.payload
-            if (payload is DnsData.UNKNOWN) {
-                response.add(payload.bytes().decodeToString())
-            } else {
-                println(payload.toString()) // todo
+            if (payload is DnsData.AAAA) {
+                response.add(payload.bytes())
             }
         }
         return response
@@ -47,21 +41,13 @@ class DnsResolver {
 
     suspend fun retrieveTxtRecords(host: String): MutableSet<String> {
         val txtRecords: MutableSet<String> = mutableSetOf()
-        try {
-            val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
-            val response = result.response
-            for (dnsRecord in response.answerSection) {
-                val payload = dnsRecord.payload
-                if (payload is TXT) {
-                    txtRecords.add(payload.text)
-                } else {
-                    println(payload.toString()) // todo
-                }
+        val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
+        val response = result.response
+        for (dnsRecord in response.answerSection) {
+            val payload = dnsRecord.payload
+            if (payload is TXT) {
+                txtRecords.add(payload.text)
             }
-        } catch (_: Exception) {
-            // nothing to do here
-        } catch (throwable: Throwable) {
-            throwable.printStackTrace()
         }
         return txtRecords
     }
@@ -103,14 +89,12 @@ class DnsResolver {
                 // CLOUDFLARE_DNS_SERVER_IP4 = "1.1.1.1";
             } catch (e: IllegalArgumentException) {
                 e.printStackTrace()
-                // todo LogUtils.error(TAG, "Could not add static IPv4 DNS Server " + e.getMessage());
             }
 
             try {
                 STATIC_IPV6_DNS_SERVERS.add(InetSocketAddress("[2001:4860:4860::8888]", 53))
             } catch (e: IllegalArgumentException) {
                 e.printStackTrace()
-                // todo LogUtils.error(TAG, "Could not add static IPv6 DNS Server " + e.getMessage());
             }
         }
     }

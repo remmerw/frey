@@ -35,7 +35,7 @@ interface DnsUtility {
         private suspend fun queryUdp(
             query: DnsMessage,
             address: InetSocketAddress
-        ): DnsMessage { // todo connect timeout missing
+        ): DnsMessage {
             var packet = asDatagram(query, address)
 
             val selectorManager = SelectorManager(Dispatchers.IO)
@@ -64,7 +64,7 @@ interface DnsUtility {
                 }.use { socket ->
 
                     val sendChannel = socket.openWriteChannel(autoFlush = true)
-                    val buffer = Buffer() // todo
+                    val buffer = Buffer()
                     message.writeTo(buffer)
                     sendChannel.writeBuffer(buffer)
 

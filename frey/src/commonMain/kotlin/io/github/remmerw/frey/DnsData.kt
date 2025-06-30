@@ -42,10 +42,10 @@ interface DnsData {
             fun parse(dis: Buffer, payloadLength: Int): OPT {
                 val variablePart: MutableList<DnsEdns.Option>?
                 if (payloadLength == 0) {
-                    variablePart = mutableListOf<DnsEdns.Option>()
+                    variablePart = mutableListOf()
                 } else {
                     var payloadLeft = payloadLength
-                    variablePart = ArrayList<DnsEdns.Option>(4)
+                    variablePart = ArrayList(4)
                     while (payloadLeft > 0) {
                         val optionCode = dis.readShort().toInt()
                         val optionLength = dis.readShort().toInt()
@@ -63,12 +63,85 @@ interface DnsData {
         }
     }
 
+
+    @Suppress("ArrayInDataClass")
+    data class A(val address: ByteArray) : DnsData {
+
+        init {
+            require(address.size == 4) { "IPv6 address in AAAA record is always 16 byte" }
+        }
+
+        override fun toString(): String {
+            val sb = StringBuilder()
+            var i = 0
+            while (i < address.size) {
+                if (i != 0) {
+                    sb.append(':')
+                }
+                sb.append(
+                    ((address[i].toInt() and 0xff) shl 8).plus(address[i + 1].toInt() and 0xff)
+                        .toHexString()
+                )
+                i += 2
+            }
+            return sb.toString()
+        }
+
+        override fun bytes(): ByteArray {
+            return address
+        }
+
+        companion object {
+
+            fun parse(dis: Buffer, length: Int): A {
+                val address = dis.readByteArray(length)
+                return A(address)
+            }
+        }
+    }
+
+    @Suppress("ArrayInDataClass")
+    data class AAAA(val address: ByteArray) : DnsData {
+
+        init {
+            require(address.size == 16) { "IPv6 address in AAAA record is always 16 byte" }
+        }
+
+        override fun toString(): String {
+            val sb = StringBuilder()
+            var i = 0
+            while (i < address.size) {
+                if (i != 0) {
+                    sb.append(':')
+                }
+                sb.append(
+                    ((address[i].toInt() and 0xff) shl 8).plus(address[i + 1].toInt() and 0xff)
+                        .toHexString()
+                )
+                i += 2
+            }
+            return sb.toString()
+        }
+
+        override fun bytes(): ByteArray {
+            return address
+        }
+
+        companion object {
+
+            fun parse(dis: Buffer, length: Int): AAAA {
+                val address = dis.readByteArray(length)
+                return AAAA(address)
+            }
+        }
+    }
+
     /**
      * A TXT record. Actually a binary blob containing extents, each of which is a one-byte count
      * followed by that many bytes of data, which can usually be interpreted as ASCII strings
      * but not always.
      */
-
+    @Suppress("ArrayInDataClass")
     data class TXT(val blob: ByteArray) : DnsData {
         val text: String
             get() {
@@ -128,6 +201,7 @@ interface DnsData {
     }
 
 
+    @Suppress("ArrayInDataClass")
     data class UNKNOWN(val data: ByteArray) : DnsData {
         override fun bytes(): ByteArray {
             return data

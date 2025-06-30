@@ -89,7 +89,7 @@ class DnsClient internal constructor(
         var ioException: Exception? = null
         for (dns in serverAddresses) {
             if (nonRaServers.contains(dns)) {
-                println("Skipping $dns because it was marked as \"recursion not available\"")  // todo
+                println("Skipping $dns because it was marked as \"recursion not available\"")
                 continue
             }
 
@@ -121,7 +121,6 @@ class DnsClient internal constructor(
                         "Response from " + dns + " asked for " + q.question +
                                 " with error code: " + responseMessage.responseCode + '.'
                     )
-                    // todo
                 }
             }
 
