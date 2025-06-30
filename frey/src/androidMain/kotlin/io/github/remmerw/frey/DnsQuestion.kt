@@ -18,18 +18,12 @@ data class DnsQuestion(
      * @return The dns question.
      */
     fun toByteArray(): ByteArray {
-        val dos = Buffer()
-
-        try {
-            name!!.writeToStream(dos)
-            dos.writeShort(type!!.value.toShort())
-            dos.writeShort((clazz!!.value or (if (unicastQuery) (1 shl 15) else 0)).toShort())
-            dos.flush()
-        } catch (e: Exception) {
-            // Should never happen
-            throw RuntimeException(e)
-        }
-        return dos.readByteArray()
+        val buffer = Buffer()
+        name!!.toBuffer(buffer)
+        buffer.writeShort(type!!.value.toShort())
+        buffer.writeShort((clazz!!.value or (if (unicastQuery) (1 shl 15) else 0)).toShort())
+        buffer.flush()
+        return buffer.readByteArray()
     }
 
 

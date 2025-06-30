@@ -1,7 +1,7 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.OPT
-import java.io.DataOutputStream
+import kotlinx.io.Buffer
 
 
 /**
@@ -76,13 +76,12 @@ data class DnsEdns(
     }
 
 
-    @JvmRecord
-    data class Option(val optionCode: Int, val optionLength: Int, val optionData: ByteArray?) {
+    data class Option(val optionCode: Int, val optionLength: Int, val optionData: ByteArray) {
 
-        fun writeToDos(dos: DataOutputStream) {
-            dos.writeShort(optionCode)
-            dos.writeShort(optionLength)
-            dos.write(optionData)
+        fun transferTo(buffer: Buffer) {
+            buffer.writeShort(optionCode.toShort())
+            buffer.writeShort(optionLength.toShort())
+            buffer.write(optionData)
         }
 
 

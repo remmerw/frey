@@ -1,8 +1,8 @@
 package io.github.remmerw.frey
 
-import java.io.ByteArrayOutputStream
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
 import java.io.DataInputStream
-import java.io.DataOutputStream
 
 /**
  * Generic payload class.
@@ -15,15 +15,9 @@ interface DnsData {
         return bytes().size
     }
 
-    /**
-     * Write the binary representation of this payload to the given [DataOutputStream].
-     *
-     * @param dos the DataOutputStream to write to.
 
-     */
-
-    fun toOutputStream(dos: DataOutputStream) {
-        dos.write(bytes())
+    fun toBuffer(buffer: Buffer) {
+        buffer.write(bytes())
     }
 
     /**
@@ -32,17 +26,16 @@ interface DnsData {
 
     data class OPT(val variablePart: MutableList<DnsEdns.Option>?) : DnsData {
         override fun bytes(): ByteArray {
-            val baos = ByteArrayOutputStream()
-            val dos = DataOutputStream(baos)
+            val dos = Buffer()
             try {
                 for (endsOption in variablePart!!) {
-                    endsOption.writeToDos(dos)
+                    endsOption.transferTo(dos)
                 }
             } catch (e: Exception) {
                 // Should never happen.
                 throw AssertionError(e)
             }
-            return baos.toByteArray()
+            return dos.readByteArray()
         }
 
         companion object {

@@ -1,7 +1,6 @@
 package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
-import java.io.OutputStream
 
 
 /**
@@ -50,10 +49,10 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         return from(lowercaseLabel)
     }
 
-    fun writeToStream(os: Buffer) {
+    fun toBuffer(buffer: Buffer) {
         val byteCache: ByteArray = label.encodeToByteArray()
-        os.writeByte(byteCache.size.toByte())
-        os.write(byteCache, 0, byteCache.size)
+        buffer.writeByte(byteCache.size.toByte())
+        buffer.write(byteCache, 0, byteCache.size)
     }
 
     override fun compareTo(other: DnsLabel): Int {

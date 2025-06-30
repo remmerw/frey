@@ -3,10 +3,7 @@ package io.github.remmerw.frey
 import io.github.remmerw.frey.DnsData.TXT
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
-import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.io.OutputStream
 
 /**
  * A generic DNS record.
@@ -21,35 +18,27 @@ data class DnsRecord(
     val payload: DnsData?
 ) {
 
-    private fun toOutputStream(outputStream: OutputStream) {
+    private fun toBuffer(buffer: Buffer) {
         checkNotNull(this.payload) { "Empty Record has no byte representation" }
 
-        val dos = DataOutputStream(outputStream)
+        name.toBuffer(buffer)
+        buffer.writeShort(type!!.value.toShort())
+        buffer.writeShort(clazzValue.toShort())
+        buffer.writeInt(ttl.toInt())
 
-        val buffer = Buffer()
-        name.writeToStream(buffer)
-        dos.write(buffer.readByteArray())
-        dos.writeShort(type!!.value)
-        dos.writeShort(clazzValue)
-        dos.writeInt(ttl.toInt())
-
-        dos.writeShort(payload.length())
-        payload.toOutputStream(dos)
+        buffer.writeShort(payload.length().toShort())
+        payload.toBuffer(buffer)
     }
 
     fun toByteArray(): ByteArray {
         val totalSize = (name.size()
                 + 10 // 2 byte short type + 2 byte short classValue + 4 byte int ttl + 2 byte short payload length.
                 + payload!!.length())
-        val baos = ByteArrayOutputStream(totalSize)
-        val dos = DataOutputStream(baos)
-        try {
-            toOutputStream(dos)
-        } catch (e: Exception) {
-            // Should never happen.
-            throw AssertionError(e)
-        }
-        return baos.toByteArray()
+
+        val buffer = Buffer()
+        toBuffer(buffer)
+        require(totalSize == buffer.size.toInt()) { "Expected size differs" }
+        return buffer.readByteArray()
     }
 
     /**
@@ -80,7 +69,7 @@ data class DnsRecord(
         if (other === this) {
             return true
         }
-        if (!name!!.equals(other.name)) return false
+        if (name != other.name) return false
         if (type != other.type) return false
         if (clazz != other.clazz) return false
         // Note that we do not compare the TTL here, since we consider two Records with everything but the TTL equal to

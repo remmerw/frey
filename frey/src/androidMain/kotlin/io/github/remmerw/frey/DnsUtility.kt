@@ -13,7 +13,6 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketAddress
 import java.net.SocketException
-import java.net.UnknownHostException
 
 interface DnsUtility {
     companion object {
@@ -98,12 +97,8 @@ interface DnsUtility {
          * @noinspection SameParameterValue
          */
         fun ipv4From(cs: CharSequence): Inet4Address {
-            val inetAddress: InetAddress?
-            try {
-                inetAddress = InetAddress.getByName(cs.toString())
-            } catch (e: UnknownHostException) {
-                throw IllegalArgumentException(e)
-            }
+            val inetAddress: InetAddress = InetAddress.getByName(cs.toString())
+
             if (inetAddress is Inet4Address) {
                 return inetAddress
             }
@@ -114,12 +109,7 @@ interface DnsUtility {
          * @noinspection SameParameterValue
          */
         fun ipv6From(cs: CharSequence): Inet6Address {
-            val inetAddress: InetAddress?
-            try {
-                inetAddress = InetAddress.getByName(cs.toString())
-            } catch (e: UnknownHostException) {
-                throw IllegalArgumentException(e)
-            }
+            val inetAddress: InetAddress = InetAddress.getByName(cs.toString())
             if (inetAddress is Inet6Address) {
                 return inetAddress
             }

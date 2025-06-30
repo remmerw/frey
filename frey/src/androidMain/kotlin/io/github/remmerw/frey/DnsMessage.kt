@@ -31,9 +31,9 @@ data class DnsMessage(
     }
 
 
-    fun writeTo(outputStream: OutputStream?) {
+    fun writeTo(buffer: OutputStream) {
         val bytes = serialize()
-        val dataOutputStream = DataOutputStream(outputStream)
+        val dataOutputStream = DataOutputStream(buffer)
         dataOutputStream.writeShort(bytes.size)
         dataOutputStream.write(bytes)
     }

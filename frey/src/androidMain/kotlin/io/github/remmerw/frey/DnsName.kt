@@ -2,7 +2,6 @@ package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
 import java.io.DataInputStream
-import java.io.OutputStream
 
 
 /**
@@ -50,11 +49,11 @@ data class DnsName(
 ) : Comparable<DnsName> {
 
 
-    fun writeToStream(os: Buffer) {
+    fun toBuffer(buffer: Buffer) {
         for (i in labels.indices.reversed()) {
-            labels[i].writeToStream(os)
+            labels[i].toBuffer(buffer)
         }
-        os.writeByte(0)
+        buffer.writeByte(0)
     }
 
 
