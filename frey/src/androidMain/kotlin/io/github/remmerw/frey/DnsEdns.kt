@@ -2,7 +2,6 @@ package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.OPT
 import java.io.DataOutputStream
-import java.io.IOException
 
 
 /**
@@ -79,7 +78,7 @@ data class DnsEdns(
 
     @JvmRecord
     data class Option(val optionCode: Int, val optionLength: Int, val optionData: ByteArray?) {
-        @Throws(IOException::class)
+
         fun writeToDos(dos: DataOutputStream) {
             dos.writeShort(optionCode)
             dos.writeShort(optionLength)

@@ -1,7 +1,6 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.TXT
-import java.net.ConnectException
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -18,7 +17,7 @@ class DnsResolver {
     }, DnsCache())
 
     private fun retrieveTxtRecords(host: String): MutableSet<String> {
-        val txtRecords: MutableSet<String> = HashSet<String>()
+        val txtRecords: MutableSet<String> = mutableSetOf()
         try {
             val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
             val response = result.response
@@ -30,7 +29,7 @@ class DnsResolver {
                     println(payload.toString())
                 }
             }
-        } catch (ignoreConnectException: ConnectException) {
+        } catch (_: Exception) {
             // nothing to do here
         } catch (throwable: Throwable) {
             throwable.printStackTrace()

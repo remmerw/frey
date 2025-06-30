@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
 import java.io.OutputStream
 import java.net.DatagramPacket
 import java.net.InetAddress
@@ -32,7 +31,7 @@ data class DnsMessage(
         return DatagramPacket(bytes, bytes.size, address, 53)
     }
 
-    @Throws(IOException::class)
+
     fun writeTo(outputStream: OutputStream?) {
         val bytes = serialize()
         val dataOutputStream = DataOutputStream(outputStream)
@@ -89,7 +88,7 @@ data class DnsMessage(
                 }
             }
             dos.flush()
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             // Should never happen.
             throw AssertionError(e)
         }
@@ -382,9 +381,8 @@ data class DnsMessage(
          * Build a DNS Message based on a binary DNS message.
          *
          * @param data The DNS message data.
-         * @throws IOException On read errors.
          */
-        @Throws(IOException::class)
+
         fun parse(data: ByteArray): DnsMessage {
             val bis = ByteArrayInputStream(data)
             val dis = DataInputStream(bis)

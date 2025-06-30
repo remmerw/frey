@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import io.github.remmerw.frey.DnsName.Companion.root
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.IDN
@@ -18,18 +17,17 @@ import java.net.UnknownHostException
 
 interface DnsUtility {
     companion object {
-        @Throws(IOException::class)
+
         fun query(message: DnsMessage, address: InetAddress?): DnsQueryResult {
             try {
                 return DnsQueryResult(queryUdp(message, address))
-            } catch (ignore: IOException) {
+            } catch (_: Exception) {
                 // ignore the first query
             }
 
             return DnsQueryResult(queryTcp(message, address))
         }
 
-        @Throws(IOException::class)
         private fun queryUdp(query: DnsMessage, address: InetAddress?): DnsMessage {
             var packet = query.asDatagram(address)
             val buffer = ByteArray(UDP_PAYLOAD_SIZE)
@@ -44,7 +42,6 @@ interface DnsUtility {
             }
         }
 
-        @Throws(IOException::class)
         private fun queryTcp(message: DnsMessage, address: InetAddress?): DnsMessage {
             createSocket().use { socket ->
                 val socketAddress: SocketAddress = InetSocketAddress(address, 53)

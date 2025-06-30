@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.Arrays
 import java.util.Collections
@@ -24,9 +23,9 @@ interface DnsData {
      * Write the binary representation of this payload to the given [DataOutputStream].
      *
      * @param dos the DataOutputStream to write to.
-     * @throws IOException if an I/O error occurs.
+
      */
-    @Throws(IOException::class)
+
     fun toOutputStream(dos: DataOutputStream) {
         dos.write(bytes())
     }
@@ -43,7 +42,7 @@ interface DnsData {
                 for (endsOption in variablePart!!) {
                     endsOption.writeToDos(dos)
                 }
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 // Should never happen.
                 throw AssertionError(e)
             }
@@ -51,8 +50,7 @@ interface DnsData {
         }
 
         companion object {
-            @JvmStatic
-            @Throws(IOException::class)
+
             fun parse(dis: DataInputStream, payloadLength: Int): OPT {
                 val variablePart: MutableList<DnsEdns.Option>?
                 if (payloadLength == 0) {
@@ -83,7 +81,7 @@ interface DnsData {
      * followed by that many bytes of data, which can usually be interpreted as ASCII strings
      * but not always.
      */
-    @JvmRecord
+
     data class TXT(val blob: ByteArray) : DnsData {
         val text: String
             get() {
@@ -141,8 +139,7 @@ interface DnsData {
         }
 
         companion object {
-            @JvmStatic
-            @Throws(IOException::class)
+
             fun parse(dis: DataInputStream, length: Int): TXT {
                 val blob = ByteArray(length)
                 dis.readFully(blob)
@@ -159,15 +156,14 @@ interface DnsData {
         }
 
         companion object {
-            @Throws(IOException::class)
+
             private fun create(dis: DataInputStream, payloadLength: Int): UNKNOWN {
                 val data = ByteArray(payloadLength)
                 dis.readFully(data)
                 return UNKNOWN(data)
             }
 
-            @JvmStatic
-            @Throws(IOException::class)
+
             fun parse(dis: DataInputStream, payloadLength: Int): UNKNOWN {
                 return create(dis, payloadLength)
             }

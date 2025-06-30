@@ -4,7 +4,6 @@ import io.github.remmerw.frey.DnsData.TXT
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
 import java.io.OutputStream
 
 /**
@@ -20,7 +19,7 @@ data class DnsRecord(
      */
     val payload: DnsData?
 ) {
-    @Throws(IOException::class)
+
     private fun toOutputStream(outputStream: OutputStream?) {
         checkNotNull(this.payload) { "Empty Record has no byte representation" }
 
@@ -43,7 +42,7 @@ data class DnsRecord(
         val dos = DataOutputStream(baos)
         try {
             toOutputStream(dos)
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             // Should never happen.
             throw AssertionError(e)
         }
@@ -230,9 +229,8 @@ data class DnsRecord(
          * @param dis  The DataInputStream positioned at the first record byte.
          * @param data The full message data.
          * @return the record which was parsed.
-         * @throws IOException In case of malformed replies.
          */
-        @Throws(IOException::class)
+
         fun parse(dis: DataInputStream, data: ByteArray): DnsRecord {
             val name = DnsName.parse(dis, data)
             val typeValue = dis.readUnsignedShort()

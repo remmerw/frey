@@ -1,6 +1,5 @@
 package io.github.remmerw.frey
 
-import java.io.IOException
 import java.io.OutputStream
 
 
@@ -50,7 +49,6 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         return from(lowercaseLabel)
     }
 
-    @Throws(IOException::class)
     fun writeToStream(os: OutputStream) {
         val byteCache: ByteArray = label.encodeToByteArray()
         os.write(byteCache.size)

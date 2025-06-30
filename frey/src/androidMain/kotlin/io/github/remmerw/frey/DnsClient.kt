@@ -2,7 +2,6 @@ package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsMessage.RESPONSE_CODE
 import io.github.remmerw.frey.DnsName.Companion.from
-import java.io.IOException
 import java.net.InetAddress
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -42,15 +41,14 @@ class DnsClient internal constructor(
      * @param name The DNS name to request.
      * @param type The DNS type to request (SRV, A, AAAA, ...).
      * @return The response (or null on timeout/error).
-     * @throws IOException if an IO error occurs.
      */
-    @Throws(IOException::class)
+
     fun query(name: CharSequence, type: DnsRecord.TYPE): DnsQueryResult {
         val q: DnsQuestion = DnsQuestion.Companion.create(from(name), type)
         return query(q)
     }
 
-    @Throws(IOException::class)
+
     private fun query(q: DnsQuestion): DnsQueryResult {
         val query = buildMessage(q)
         return query(query)
@@ -70,7 +68,7 @@ class DnsClient internal constructor(
         return message
     }
 
-    @Throws(IOException::class)
+
     private fun query(query: DnsMessage, address: InetAddress?): DnsQueryResult {
         val responseMessage: DnsQueryResult = DnsUtility.Companion.query(query, address)
         onResponse(query, responseMessage)
@@ -80,7 +78,7 @@ class DnsClient internal constructor(
     private val serverAddresses: MutableList<InetAddress?>
         get() = settingSupplier.get()
 
-    @Throws(IOException::class)
+
     private fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
         val q: DnsMessage = newQuestion(queryBuilder).build()
         // While this query method does in fact re-use query(Question, String)
@@ -96,7 +94,7 @@ class DnsClient internal constructor(
         val dnsServerAddresses =
             this.serverAddresses
 
-        var ioException: IOException? = null
+        var ioException: Exception? = null
         for (dns in dnsServerAddresses) {
             if (nonRaServers.contains(dns)) {
                 println("Skipping " + dns + " because it was marked as \"recursion not available\"") // todo
@@ -105,7 +103,7 @@ class DnsClient internal constructor(
 
             try {
                 dnsQueryResult = query(q, dns)
-            } catch (exception: IOException) {
+            } catch (exception: Exception) {
                 ioException = exception
                 continue
             }
@@ -155,7 +153,7 @@ class DnsClient internal constructor(
          */
         private fun isResponseCacheable(q: DnsQuestion, result: DnsQueryResult): Boolean {
             val dnsMessage = result.response
-            for (dnsRecord in dnsMessage.answerSection!!) {
+            for (dnsRecord in dnsMessage.answerSection) {
                 if (dnsRecord.isAnswer(q)) {
                     return true
                 }

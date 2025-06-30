@@ -1,7 +1,6 @@
 package io.github.remmerw.frey
 
 import java.io.DataInputStream
-import java.io.IOException
 import java.io.OutputStream
 
 
@@ -54,9 +53,8 @@ data class DnsName(
     }
 
 
-    @Throws(IOException::class)
     fun writeToStream(os: OutputStream) {
-        for (i in labels!!.indices.reversed()) {
+        for (i in labels.indices.reversed()) {
             labels.get(i).writeToStream(os)
         }
         os.write(0)
@@ -238,10 +236,8 @@ data class DnsName(
          * @param dis  The input stream.
          * @param data The raw data (for cross references).
          * @return The domain name string.
-         * @throws IOException Should never happen.
          */
-        @JvmStatic
-        @Throws(IOException::class)
+
         fun parse(dis: DataInputStream, data: ByteArray): DnsName {
             var c = dis.readUnsignedByte()
             if ((c and 0xc0) == 0xc0) {

@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
 
 /**
  * A DNS question (request).
@@ -27,7 +26,7 @@ data class DnsQuestion(
             dos.writeShort(type!!.value)
             dos.writeShort(clazz!!.value or (if (unicastQuery) (1 shl 15) else 0))
             dos.flush()
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             // Should never happen
             throw RuntimeException(e)
         }
@@ -48,9 +47,8 @@ data class DnsQuestion(
          *
          * @param dis  The input stream.
          * @param data The plain data (for dns name references).
-         * @throws IOException On errors (read outside of packet).
+
          */
-        @Throws(IOException::class)
         fun parse(dis: DataInputStream, data: ByteArray): DnsQuestion {
             return DnsQuestion(
                 DnsName.parse(dis, data),
