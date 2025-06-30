@@ -3,8 +3,6 @@ package io.github.remmerw.frey
 import kotlinx.io.Buffer
 import kotlinx.io.Source
 import kotlinx.io.readByteArray
-import java.io.ByteArrayInputStream
-import java.io.DataInputStream
 
 /**
  * A DNS message as defined by RFC 1035. The message consists of a header and
@@ -335,10 +333,10 @@ data class DnsMessage(
 
         fun parse(source: Source): DnsMessage {
             val data = source.readByteArray()
-            val bis = ByteArrayInputStream(data)
-            val dis = DataInputStream(bis)
-            val id = dis.readUnsignedShort()
-            val header = dis.readUnsignedShort()
+            val dis = Buffer()
+            dis.write(data)
+            val id = dis.readShort().toInt()
+            val header = dis.readShort().toInt()
             val qr = ((header shr 15) and 1) == 1
             val opcode = OPCODE.Companion.getOpcode((header shr 11) and 0xf)
             val authoritativeAnswer = ((header shr 10) and 1) == 1
@@ -349,10 +347,10 @@ data class DnsMessage(
             val checkingDisabled = ((header shr 4) and 1) == 1
             val responseCode = ResponseCode.Companion.getResponseCode(header and 0xf)
             val receiveTimestamp = System.currentTimeMillis()
-            val questionCount = dis.readUnsignedShort()
-            val answerCount = dis.readUnsignedShort()
-            val nameserverCount = dis.readUnsignedShort()
-            val additionalResourceRecordCount = dis.readUnsignedShort()
+            val questionCount = dis.readShort().toInt()
+            val answerCount = dis.readShort().toInt()
+            val nameserverCount = dis.readShort().toInt()
+            val additionalResourceRecordCount = dis.readShort().toInt()
             val questions: MutableList<DnsQuestion> = mutableListOf()
             repeat(questionCount) {
                 questions.add(DnsQuestion.Companion.parse(dis, data))

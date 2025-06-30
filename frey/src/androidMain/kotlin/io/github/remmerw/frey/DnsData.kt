@@ -2,7 +2,6 @@ package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
-import java.io.DataInputStream
 
 /**
  * Generic payload class.
@@ -40,7 +39,7 @@ interface DnsData {
 
         companion object {
 
-            fun parse(dis: DataInputStream, payloadLength: Int): OPT {
+            fun parse(dis: Buffer, payloadLength: Int): OPT {
                 val variablePart: MutableList<DnsEdns.Option>?
                 if (payloadLength == 0) {
                     variablePart = mutableListOf<DnsEdns.Option>()
@@ -48,10 +47,9 @@ interface DnsData {
                     var payloadLeft = payloadLength
                     variablePart = ArrayList<DnsEdns.Option>(4)
                     while (payloadLeft > 0) {
-                        val optionCode = dis.readUnsignedShort()
-                        val optionLength = dis.readUnsignedShort()
-                        val optionData = ByteArray(optionLength)
-                        dis.read(optionData)
+                        val optionCode = dis.readShort().toInt()
+                        val optionLength = dis.readShort().toInt()
+                        val optionData = dis.readByteArray(optionLength)
                         val option = DnsEdns.Option.parse(optionCode, optionData)
                         variablePart.add(option)
                         payloadLeft -= 2 + 2 + optionLength
@@ -122,9 +120,8 @@ interface DnsData {
 
         companion object {
 
-            fun parse(dis: DataInputStream, length: Int): TXT {
-                val blob = ByteArray(length)
-                dis.readFully(blob)
+            fun parse(dis: Buffer, length: Int): TXT {
+                val blob = dis.readByteArray(length)
                 return TXT(blob)
             }
         }
@@ -138,14 +135,13 @@ interface DnsData {
 
         companion object {
 
-            private fun create(dis: DataInputStream, payloadLength: Int): UNKNOWN {
-                val data = ByteArray(payloadLength)
-                dis.readFully(data)
+            private fun create(dis: Buffer, payloadLength: Int): UNKNOWN {
+                val data = dis.readByteArray(payloadLength)
                 return UNKNOWN(data)
             }
 
 
-            fun parse(dis: DataInputStream, payloadLength: Int): UNKNOWN {
+            fun parse(dis: Buffer, payloadLength: Int): UNKNOWN {
                 return create(dis, payloadLength)
             }
         }

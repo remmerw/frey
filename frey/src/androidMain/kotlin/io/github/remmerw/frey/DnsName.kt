@@ -1,7 +1,7 @@
 package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
-import java.io.DataInputStream
+import kotlinx.io.readByteArray
 
 
 /**
@@ -234,10 +234,10 @@ data class DnsName(
          * @return The domain name string.
          */
 
-        fun parse(dis: DataInputStream, data: ByteArray): DnsName {
-            var c = dis.readUnsignedByte()
+        fun parse(dis: Buffer, data: ByteArray): DnsName {
+            var c = dis.readByte().toInt()
             if ((c and 0xc0) == 0xc0) {
-                c = ((c and 0x3f) shl 8) + dis.readUnsignedByte()
+                c = ((c and 0x3f) shl 8) + dis.readByte()
                 val jumps = HashSet<Int?>()
                 jumps.add(c)
                 return parse(data, c, jumps)
@@ -245,8 +245,7 @@ data class DnsName(
             if (c == 0) {
                 return root()
             }
-            val b = ByteArray(c)
-            dis.readFully(b)
+            val b = dis.readByteArray(c)
 
             val childLabelString = b.decodeToString()
             val child: DnsName = create(childLabelString, true)

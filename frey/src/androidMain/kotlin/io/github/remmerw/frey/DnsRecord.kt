@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import io.github.remmerw.frey.DnsData.TXT
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
-import java.io.DataInputStream
 
 /**
  * A generic DNS record.
@@ -223,15 +222,15 @@ data class DnsRecord(
          * @return the record which was parsed.
          */
 
-        fun parse(dis: DataInputStream, data: ByteArray): DnsRecord {
+        fun parse(dis: Buffer, data: ByteArray): DnsRecord {
             val name = DnsName.parse(dis, data)
-            val typeValue = dis.readUnsignedShort()
+            val typeValue = dis.readShort().toInt()
             val type: TYPE = TYPE.Companion.getType(typeValue)
-            val clazzValue = dis.readUnsignedShort()
+            val clazzValue = dis.readShort().toInt()
             val clazz: CLASS? = CLASS.Companion.getClass(clazzValue and 0x7fff)
-            val ttl = ((dis.readUnsignedShort().toLong()) shl 16) +
-                    dis.readUnsignedShort()
-            val payloadLength = dis.readUnsignedShort()
+            val ttl = ((dis.readShort().toLong()) shl 16) +
+                    dis.readShort().toInt()
+            val payloadLength = dis.readShort().toInt()
             val payloadDnsData: DnsData = when (type) {
                 TYPE.TXT -> TXT.parse(dis, payloadLength)
                 TYPE.OPT -> DnsData.OPT.parse(dis, payloadLength)

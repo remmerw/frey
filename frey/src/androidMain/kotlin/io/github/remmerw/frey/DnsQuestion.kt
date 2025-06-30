@@ -2,7 +2,6 @@ package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
-import java.io.DataInputStream
 
 /**
  * A DNS question (request).
@@ -42,11 +41,11 @@ data class DnsQuestion(
          * @param data The plain data (for dns name references).
 
          */
-        fun parse(dis: DataInputStream, data: ByteArray): DnsQuestion {
+        fun parse(dis: Buffer, data: ByteArray): DnsQuestion {
             return DnsQuestion(
                 DnsName.parse(dis, data),
-                DnsRecord.TYPE.Companion.getType(dis.readUnsignedShort()),
-                DnsRecord.CLASS.Companion.getClass(dis.readUnsignedShort()), false
+                DnsRecord.TYPE.Companion.getType(dis.readShort().toInt()),
+                DnsRecord.CLASS.Companion.getClass(dis.readShort().toInt()), false
             )
         }
     }
