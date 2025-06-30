@@ -40,12 +40,12 @@ final class DnsCache {
 
     private void putNormalized(DnsMessage q, DnsQueryResult result) {
 
-        if (result.response().receiveTimestamp() <= 0L) {
+        if (result.getResponse().receiveTimestamp() <= 0L) {
             return;
         }
         reentrantLock.lock();
         try {
-            backend.put(q, new DnsQueryResult(result.response()));
+            backend.put(q, new DnsQueryResult(result.getResponse()));
         } finally {
             reentrantLock.unlock();
         }
@@ -62,7 +62,7 @@ final class DnsCache {
                 return null;
             }
 
-            DnsMessage message = result.response();
+            DnsMessage message = result.getResponse();
 
             // RFC 2181 § 5.2 says that all TTLs in a RRSet should be equal, if this isn't the case, then we assume the
             // shortest TTL to be the effective one.

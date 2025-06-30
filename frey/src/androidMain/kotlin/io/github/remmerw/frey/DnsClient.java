@@ -17,7 +17,7 @@ import java.util.function.Supplier;
  * This circumvents the missing javax.naming package on android.
  */
 public final class DnsClient {
-    private static final String TAG = DnsClient.class.getSimpleName();
+
 
     /**
      * The internal random class for sequence generation.
@@ -59,7 +59,7 @@ public final class DnsClient {
      * @return True, if the response should be cached, false otherwise.
      */
     private static boolean isResponseCacheable(DnsQuestion q, DnsQueryResult result) {
-        DnsMessage dnsMessage = result.response();
+        DnsMessage dnsMessage = result.getResponse();
         for (DnsRecord dnsRecord : dnsMessage.answerSection()) {
             if (dnsRecord.isAnswer(q)) {
                 return true;
@@ -153,7 +153,7 @@ public final class DnsClient {
                 continue;
             }
 
-            DnsMessage responseMessage = dnsQueryResult.response();
+            DnsMessage responseMessage = dnsQueryResult.getResponse();
             if (!responseMessage.recursionAvailable()) {
                 boolean newRaServer = nonRaServers.add(dns);
                 if (newRaServer) {

@@ -37,7 +37,7 @@ public interface DnsData {
     /**
      * OPT payload (see RFC 2671 for details).
      */
-    record OPT(DnsEdns.Option[] variablePart) implements DnsData {
+    record OPT(List<DnsEdns.Option> variablePart) implements DnsData {
 
         public static OPT parse(DataInputStream dis, int payloadLength) throws IOException {
             List<DnsEdns.Option> variablePart;
@@ -59,8 +59,8 @@ public interface DnsData {
                     assert payloadLeft >= 0;
                 }
             }
-            DnsEdns.Option[] parts = new DnsEdns.Option[variablePart.size()];
-            return new OPT(variablePart.toArray(parts));
+
+            return new OPT(variablePart);
         }
 
 

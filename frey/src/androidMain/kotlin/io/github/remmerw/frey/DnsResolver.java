@@ -1,5 +1,6 @@
 package io.github.remmerw.frey;
 
+
 import java.net.ConnectException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -15,7 +16,6 @@ public final class DnsResolver {
     public static final Set<Inet6Address> STATIC_IPV6_DNS_SERVERS = new CopyOnWriteArraySet<>();
     private static final String DNS_ADDR = "dnsaddr=";
     private static final String DNS_LINK = "dnslink=";
-    private static final String TAG = DnsResolver.class.getSimpleName();
 
     static {
         try {
@@ -39,11 +39,14 @@ public final class DnsResolver {
         return list;
     }, new DnsCache());
 
-    private static Set<String> retrieveTxtRecords(DnsClient client, String host) {
+    public DnsResolver() {
+    }
+
+    private Set<String> retrieveTxtRecords(String host) {
         Set<String> txtRecords = new HashSet<>();
         try {
-            DnsQueryResult result = client.query(host, DnsRecord.TYPE.TXT);
-            DnsMessage response = result.response();
+            DnsQueryResult result = dnsClient.query(host, DnsRecord.TYPE.TXT);
+            DnsMessage response = result.getResponse();
             for (DnsRecord dnsRecord : response.answerSection()) {
                 DnsData payload = dnsRecord.getPayload();
                 if (payload instanceof DnsData.TXT text) {
@@ -60,11 +63,9 @@ public final class DnsResolver {
         return txtRecords;
     }
 
-    public DnsResolver(){}
+    public String resolveDnsLink(String host) {
 
-    public String resolveDnsLink(DnsClient client, String host) {
-
-        Set<String> txtRecords = retrieveTxtRecords(client, "_dnslink.".concat(host));
+        Set<String> txtRecords = retrieveTxtRecords("_dnslink.".concat(host));
         for (String txtRecord : txtRecords) {
             if (txtRecord.startsWith(DNS_LINK)) {
                 return txtRecord.replaceFirst(DNS_LINK, "");
@@ -87,7 +88,7 @@ public final class DnsResolver {
         }
         hosts.add(host);
 
-        Set<String> txtRecords = retrieveTxtRecords(dnsClient, "_dnsaddr." + host);
+        Set<String> txtRecords = retrieveTxtRecords("_dnsaddr." + host);
 
         for (String txtRecord : txtRecords) {
             try {

@@ -1,5 +1,3 @@
-package io.github.remmerw.frey;
+package io.github.remmerw.frey
 
-public record DnsQueryResult(DnsMessage response) {
-}
-
+data class DnsQueryResult(val response: DnsMessage)

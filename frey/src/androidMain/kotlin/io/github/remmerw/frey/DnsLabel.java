@@ -4,6 +4,8 @@ package io.github.remmerw.frey;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -120,11 +122,11 @@ public record DnsLabel(String label) implements Comparable<DnsLabel> {
     }
 
 
-    public static DnsLabel[] from(String[] labels) {
-        DnsLabel[] res = new DnsLabel[labels.length];
+    public static List<DnsLabel> from(String[] labels) {
+        List<DnsLabel> res = new ArrayList<>();
 
         for (int i = 0; i < labels.length; i++) {
-            res[i] = DnsLabel.from(labels[i]);
+            res.add(DnsLabel.from(labels[i]));
         }
 
         return res;

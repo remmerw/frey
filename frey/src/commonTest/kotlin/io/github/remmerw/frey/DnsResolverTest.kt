@@ -5,12 +5,12 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 
 
-class ResolverTest {
+class DnsResolverTest {
     
     @Test
     fun test() {
-        val dnsResolver = DnsResolver()
-        val result = dnsResolver.resolveDnsAddr("bootstrap.libp2p.io")
+        val resolver = DnsResolver()
+        val result = resolver.resolveDnsAddr("bootstrap.libp2p.io")
         assertNotNull(result)
         assertFalse(result.isEmpty())
         result.forEach { text -> println(text) }

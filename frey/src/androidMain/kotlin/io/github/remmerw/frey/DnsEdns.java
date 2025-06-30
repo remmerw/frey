@@ -3,7 +3,9 @@ package io.github.remmerw.frey;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,13 +14,13 @@ import java.util.Map;
  * @see <a href="https://tools.ietf.org/html/rfc6891">RFC 6891 - Extension Mechanisms for DNS (EDNS(0))</a>
  */
 public record DnsEdns(int udpPayloadSize, int extendedRcode, int version,
-                      int flags, Option[] variablePart) {
+                      int flags, List<Option> variablePart) {
 
     /**
      * Inform the dns server that the client supports DNSSEC.
      */
     private static final int FLAG_DNSSEC_OK = 0x8000;
-    private static final Option[] VARIABLE_PART = new Option[0];
+    private static final List<Option> VARIABLE_PART = new ArrayList<>();
 
 
     private static DnsEdns create(Builder builder) {

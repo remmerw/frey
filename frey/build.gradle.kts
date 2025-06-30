@@ -18,7 +18,7 @@ kotlin {
 
 
     androidTarget {
-        // TODO instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
+        instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
         publishLibraryVariants("release")
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)

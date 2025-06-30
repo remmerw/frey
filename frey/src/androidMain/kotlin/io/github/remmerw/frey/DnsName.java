@@ -5,8 +5,10 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -32,10 +34,11 @@ import java.util.Locale;
  * @see <a href="https://tools.ietf.org/html/rfc3696">RFC 3696</a>
  * @see DnsLabel
  */
-public record DnsName(String ace, String rawAce, DnsLabel[] labels,
-                      DnsLabel[] rawLabels) implements Comparable<DnsName> {
+public record DnsName(String ace, String rawAce,
+                      List<DnsLabel> labels,
+                      List<DnsLabel> rawLabels) implements Comparable<DnsName> {
 
-    private static final DnsLabel[] DNS_LABELS_EMPTY = new DnsLabel[0];
+    private static final List<DnsLabel> DNS_LABELS_EMPTY = new ArrayList<>();
     private static final int MAX_LABELS = 128;
     /**
      * @see <a href="https://www.ietf.org/rfc/rfc3490.txt">RFC 3490 § 3.1 1.</a>
@@ -68,8 +71,8 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
 
         String ace = rawAce.toLowerCase(Locale.US);
 
-        DnsLabel[] rawLabels;
-        DnsLabel[] labels;
+        List<DnsLabel> rawLabels;
+        List<DnsLabel> labels;
         if (isRootLabel(ace)) {
             rawLabels = labels = DNS_LABELS_EMPTY;
         } else {
@@ -80,15 +83,15 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
         return new DnsName(ace, rawAce, labels, rawLabels);
     }
 
-    private static DnsName create(DnsLabel[] rawLabels) {
+    private static DnsName create(List<DnsLabel> rawLabels) {
 
 
-        DnsLabel[] labels = new DnsLabel[rawLabels.length];
+        List<DnsLabel> labels = new ArrayList<>();
 
         int size = 0;
-        for (int i = 0; i < rawLabels.length; i++) {
-            size += rawLabels[i].length() + 1;
-            labels[i] = rawLabels[i].asLowercaseVariant();
+        for (DnsLabel rawLabel : rawLabels) {
+            size += rawLabel.length() + 1;
+            labels.add(rawLabel.asLowercaseVariant());
         }
 
         String rawAce = labelsToString(rawLabels, size);
@@ -104,16 +107,16 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
         return ROOT;
     }
 
-    private static String labelsToString(DnsLabel[] labels, int stringLength) {
+    private static String labelsToString(List<DnsLabel> labels, int stringLength) {
         StringBuilder sb = new StringBuilder(stringLength);
-        for (int i = labels.length - 1; i >= 0; i--) {
-            sb.append(labels[i]).append('.');
+        for (int i = labels.size() - 1; i >= 0; i--) {
+            sb.append(labels.get(i)).append('.');
         }
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
 
-    private static DnsLabel[] getLabels(String ace) {
+    private static List<DnsLabel> getLabels(String ace) {
         String[] labels = ace.split(LABEL_SEP_REGEX, MAX_LABELS);
 
         // Reverse the labels, so that 'foo, example, org' becomes 'org, example, foo'.
@@ -147,9 +150,9 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
      * @return the resulting of DNS name.
      */
     private static DnsName from(DnsName child, DnsName parent) {
-        DnsLabel[] rawLabels = new DnsLabel[child.rawLabels.length + parent.rawLabels.length];
-        System.arraycopy(parent.rawLabels, 0, rawLabels, 0, parent.rawLabels.length);
-        System.arraycopy(child.rawLabels, 0, rawLabels, parent.rawLabels.length, child.rawLabels.length);
+        List<DnsLabel> rawLabels = new ArrayList<>();
+        rawLabels.addAll(parent.rawLabels);
+        rawLabels.addAll(child.rawLabels);
         return DnsName.create(rawLabels);
     }
 
@@ -226,8 +229,8 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
 
     public void writeToStream(OutputStream os) throws IOException {
 
-        for (int i = labels.length - 1; i >= 0; i--) {
-            labels[i].writeToStream(os);
+        for (int i = labels.size() - 1; i >= 0; i--) {
+            labels.get(i).writeToStream(os);
         }
         os.write(0);
     }
@@ -259,16 +262,16 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
     @Override
     public String toString() {
 
-        if (labels.length == 0) {
+        if (labels.size() == 0) {
             return ".";
         }
 
         StringBuilder sb = new StringBuilder();
-        for (int i = labels.length - 1; i >= 0; i--) {
+        for (int i = labels.size() - 1; i >= 0; i--) {
             // Note that it is important that we append the result of DnsLabel.toString() to
             // the StringBuilder. As only the result of toString() is the safe label
             // representation.
-            String safeLabelRepresentation = labels[i].toString();
+            String safeLabelRepresentation = labels.get(i).toString();
             sb.append(safeLabelRepresentation);
             if (i != 0) {
                 sb.append('.');
@@ -287,7 +290,7 @@ public record DnsName(String ace, String rawAce, DnsLabel[] labels,
     public boolean equals(Object other) {
         if (other == null) return false;
         if (other instanceof DnsName otherDnsName) {
-            return Arrays.equals(labels, otherDnsName.labels);
+            return Arrays.equals(labels.stream().toArray(), otherDnsName.labels.stream().toArray()); // todo check
         }
         return false;
     }
