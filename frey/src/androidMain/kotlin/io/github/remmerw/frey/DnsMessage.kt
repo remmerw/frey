@@ -333,8 +333,6 @@ data class DnsMessage(
         private val RECORDS_EMPTY: List<DnsRecord> = emptyList()
 
 
-
-
         fun parse(source: Source): DnsMessage {
             val data = source.readByteArray()
             val bis = ByteArrayInputStream(data)
