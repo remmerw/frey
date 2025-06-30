@@ -3,10 +3,6 @@ package io.github.remmerw.frey
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.nio.charset.StandardCharsets
-import java.util.Arrays
-import java.util.Collections
-
 
 /**
  * Generic payload class.
@@ -33,7 +29,7 @@ interface DnsData {
     /**
      * OPT payload (see RFC 2671 for details).
      */
-    @JvmRecord
+
     data class OPT(val variablePart: MutableList<DnsEdns.Option>?) : DnsData {
         override fun bytes(): ByteArray {
             val baos = ByteArrayOutputStream()
@@ -97,32 +93,25 @@ interface DnsData {
                 return sb.toString()
             }
 
-        private val characterStrings: MutableList<String?>
+        private val characterStrings: List<String>
             get() {
                 val extents = this.extents
-                val characterStrings: MutableList<String?> =
-                    ArrayList<String?>(extents.size)
+                val characterStrings: MutableList<String> = mutableListOf()
                 for (extent in extents) {
-                    characterStrings.add(
-                        String(
-                            extent!!,
-                            StandardCharsets.UTF_8
-                        )
-                    )
+                    characterStrings.add(extent.decodeToString())
                 }
-                return Collections.unmodifiableList<String?>(characterStrings)
+                return characterStrings.toList()
             }
 
-        private val extents: MutableList<ByteArray?>
+        private val extents: MutableList<ByteArray>
             get() {
-                val extents =
-                    ArrayList<ByteArray?>()
+                val extents = ArrayList<ByteArray>()
                 var segLength: Int
                 var used = 0
-                while (used < blob!!.size) {
+                while (used < blob.size) {
                     segLength = 0x00ff and blob[used].toInt()
                     val end = ++used + segLength
-                    val extent = Arrays.copyOfRange(blob, used, end)
+                    val extent = blob.copyOfRange(used, end)
                     extents.add(extent)
                     used += segLength
                 }
@@ -149,7 +138,6 @@ interface DnsData {
     }
 
 
-    @JvmRecord
     data class UNKNOWN(val data: ByteArray) : DnsData {
         override fun bytes(): ByteArray {
             return data
