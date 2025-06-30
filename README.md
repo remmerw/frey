@@ -9,7 +9,7 @@
 
 ## Frey
 
-The **Frey** implements a DnsResolver which based on [miniDns](https://github.com/MiniDNS/minidns).
+The **Frey** implements a DnsResolver client which based on [miniDns](https://github.com/MiniDNS/minidns).
 
 ## Integration
 
