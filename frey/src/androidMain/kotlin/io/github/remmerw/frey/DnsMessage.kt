@@ -1,6 +1,7 @@
 package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
+import kotlinx.io.Source
 import kotlinx.io.readByteArray
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
@@ -332,13 +333,10 @@ data class DnsMessage(
         private val RECORDS_EMPTY: List<DnsRecord> = emptyList()
 
 
-        /**
-         * Build a DNS Message based on a binary DNS message.
-         *
-         * @param data The DNS message data.
-         */
 
-        fun parse(data: ByteArray): DnsMessage {
+
+        fun parse(source: Source): DnsMessage {
+            val data = source.readByteArray()
             val bis = ByteArrayInputStream(data)
             val dis = DataInputStream(bis)
             val id = dis.readUnsignedShort()

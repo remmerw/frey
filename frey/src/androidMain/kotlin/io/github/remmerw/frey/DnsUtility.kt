@@ -7,12 +7,11 @@ import io.ktor.network.sockets.InetSocketAddress
 import io.ktor.network.sockets.aSocket
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
-import io.ktor.utils.io.readByteArray
+import io.ktor.utils.io.readBuffer
 import io.ktor.utils.io.readShort
 import io.ktor.utils.io.writeBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.io.Buffer
-import kotlinx.io.readByteArray
 import java.net.IDN
 
 interface DnsUtility {
@@ -47,8 +46,7 @@ interface DnsUtility {
                 ).use { socket ->
                     socket.send(packet)
                     packet = socket.receive()
-                    val data = packet.packet.readByteArray()
-                    val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
+                    val dnsMessage: DnsMessage = DnsMessage.Companion.parse(packet.packet)
                     check(dnsMessage.id == query.id) { "The response's ID doesn't matches the request ID" }
                     return dnsMessage
                 }
@@ -72,7 +70,7 @@ interface DnsUtility {
 
                     val receiveChannel = socket.openReadChannel()
                     val length = receiveChannel.readShort()
-                    val data = receiveChannel.readByteArray(length.toInt())
+                    val data = receiveChannel.readBuffer(length.toInt())
                     val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
                     check(dnsMessage.id == message.id) { "The response's ID doesn't matches the request ID" }
                     return dnsMessage

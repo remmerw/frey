@@ -66,7 +66,7 @@ data class DnsName(
     }
 
     override fun toString(): String {
-        if (labels.size == 0) {
+        if (labels.isEmpty()) {
             return "."
         }
 
@@ -85,7 +85,7 @@ data class DnsName(
     }
 
     override fun compareTo(other: DnsName): Int {
-        return ace!!.compareTo(other.ace!!)
+        return ace.compareTo(other.ace)
     }
 
     override fun equals(other: Any?): Boolean {
