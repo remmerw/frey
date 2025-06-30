@@ -4,7 +4,6 @@ import io.github.remmerw.frey.DnsData.TXT
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
-import java.util.concurrent.CopyOnWriteArraySet
 
 
 class DnsResolver {
@@ -46,39 +45,15 @@ class DnsResolver {
         return ""
     }
 
-    fun resolveDnsAddr(host: String): MutableSet<String> {
-        return resolveDnsAddrHost(host, mutableSetOf())
-    }
-
-
-    private fun resolveDnsAddrHost(host: String, hosts: MutableSet<String>): MutableSet<String> {
+    fun resolveDnsAddr(host: String): Set<String> {
         val multiAddresses: MutableSet<String> = mutableSetOf()
-        // recursion protection
-        if (hosts.contains(host)) {
-            return multiAddresses
-        }
-        hosts.add(host)
 
         val txtRecords = retrieveTxtRecords("_dnsaddr.$host")
 
         for (txtRecord in txtRecords) {
-            try {
-                if (txtRecord.startsWith(DNS_ADDR)) {
-                    val testRecordReduced: String = txtRecord.replaceFirst(DNS_ADDR, "")
-                    multiAddresses.add(testRecordReduced)
-                    /* TODO
-                    Peeraddr multiaddr = Peeraddr.create(testRecordReduced);
-                    if (multiaddr.isDnsaddr()) {
-                        String childHost = multiaddr.getDnsHost();
-                        multiAddresses.addAll(resolveDnsaddrHost(dnsClient,
-                                childHost, hosts));
-                    } else {
-                         multiAddresses.add(multiaddr);
-
-                    }*/
-                }
-            } catch (throwable: Throwable) {
-                // todo (TAG, "Not supported " + txtRecord);
+            if (txtRecord.startsWith(DNS_ADDR)) {
+                val testRecordReduced: String = txtRecord.replaceFirst(DNS_ADDR, "")
+                multiAddresses.add(testRecordReduced)
             }
         }
         return multiAddresses
@@ -86,10 +61,8 @@ class DnsResolver {
 
 
     companion object {
-        val STATIC_IPV4_DNS_SERVERS: MutableSet<Inet4Address> =
-            CopyOnWriteArraySet<Inet4Address>()
-        val STATIC_IPV6_DNS_SERVERS: MutableSet<Inet6Address> =
-            CopyOnWriteArraySet<Inet6Address>()
+        val STATIC_IPV4_DNS_SERVERS: MutableSet<Inet4Address> = mutableSetOf()
+        val STATIC_IPV6_DNS_SERVERS: MutableSet<Inet6Address> = mutableSetOf()
         private const val DNS_ADDR = "dnsaddr="
         private const val DNS_LINK = "dnslink="
 
