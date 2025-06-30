@@ -1,6 +1,6 @@
 package io.github.remmerw.frey
 
-import io.github.remmerw.frey.DnsMessage.RESPONSE_CODE
+import io.github.remmerw.frey.DnsMessage.ResponseCode
 import io.github.remmerw.frey.DnsName.Companion.from
 import io.ktor.util.collections.ConcurrentSet
 import java.net.InetAddress
@@ -117,7 +117,7 @@ class DnsClient internal constructor(
             }
 
             when (responseMessage.responseCode) {
-                RESPONSE_CODE.NO_ERROR, RESPONSE_CODE.NX_DOMAIN -> {}
+                ResponseCode.NO_ERROR, ResponseCode.NX_DOMAIN -> {}
                 else -> {
                     println(
                         "Response from " + dns + " asked for " + q.question +

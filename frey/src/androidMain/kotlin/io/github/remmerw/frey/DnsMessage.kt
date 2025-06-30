@@ -17,7 +17,7 @@ import java.net.InetAddress
  */
 @JvmRecord
 data class DnsMessage(
-    val id: Int, val opcode: OPCODE?, val responseCode: RESPONSE_CODE?,
+    val id: Int, val opcode: OPCODE?, val responseCode: ResponseCode?,
     val receiveTimestamp: Long, val optRrPosition: Int, val recursionAvailable: Boolean,
     val qr: Boolean, val authoritativeAnswer: Boolean, val truncated: Boolean,
     val recursionDesired: Boolean, val authenticData: Boolean,
@@ -51,11 +51,7 @@ data class DnsMessage(
             } else {
                 dos.writeShort(questions.size.toShort().toInt())
             }
-            if (answerSection == null) {
-                dos.writeShort(0)
-            } else {
-                dos.writeShort(answerSection.size.toShort().toInt())
-            }
+            dos.writeShort(answerSection.size.toShort().toInt())
             if (authoritySection == null) {
                 dos.writeShort(0)
             } else {
@@ -135,9 +131,9 @@ data class DnsMessage(
          * @return the minimum TTL from all answers in seconds.
          */
         get() {
-            var answersMinTtlCache = java.lang.Long.MAX_VALUE
-            for (r in answerSection!!) {
-                answersMinTtlCache = Math.min(answersMinTtlCache, r.ttl)
+            var answersMinTtlCache = Long.MAX_VALUE
+            for (r in answerSection) {
+                answersMinTtlCache = kotlin.math.min(answersMinTtlCache, r.ttl)
             }
             return answersMinTtlCache
         }
@@ -171,7 +167,7 @@ data class DnsMessage(
      * IANA Domain Name System
      * @see [RFC 6895 § 2.3](http://tools.ietf.org/html/rfc6895.section-2.3)
     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-6) */
-    enum class RESPONSE_CODE(value: Int) {
+    enum class ResponseCode(value: Int) {
         NO_ERROR(0),
         FORMAT_ERR(1),
         SERVER_FAIL(2),
@@ -198,26 +194,14 @@ data class DnsMessage(
          *
          * @return the response code.
          */
-        /**
-         * The response code value.
-         */
-        val value: Byte
-
-        /**
-         * Create a new response code.
-         *
-         * @param value The response code value.
-         */
-        init {
-            this.value = value.toByte()
-        }
+        val value: Byte = value.toByte()
 
         companion object {
             /**
              * Reverse lookup table for response codes.
              */
-            private val INVERSE_LUT: MutableMap<Int?, RESPONSE_CODE?> =
-                HashMap<Int?, RESPONSE_CODE?>(
+            private val INVERSE_LUT: MutableMap<Int?, ResponseCode?> =
+                HashMap<Int?, ResponseCode?>(
                     entries.size
                 )
 
@@ -235,9 +219,9 @@ data class DnsMessage(
              * @throws IllegalArgumentException if the value is not in the range of 0..15.
              */
             @Throws(IllegalArgumentException::class)
-            fun getResponseCode(value: Int): RESPONSE_CODE? {
+            fun getResponseCode(value: Int): ResponseCode? {
                 require(!(value < 0 || value > 65535))
-                return INVERSE_LUT.get(value)
+                return INVERSE_LUT[value]
             }
         }
     }
@@ -262,17 +246,7 @@ data class DnsMessage(
          *
          * @return The byte value of this opcode.
          */
-        /**
-         * The value of this opcode.
-         */
-        val value: Byte
-
-        /**
-         * Create a new opcode for a given byte value.
-         */
-        init {
-            this.value = this.ordinal.toByte()
-        }
+        val value: Byte = this.ordinal.toByte()
 
         companion object {
             /**
@@ -308,7 +282,7 @@ data class DnsMessage(
 
     class Builder() {
         val opcode = OPCODE.QUERY
-        val responseCode = RESPONSE_CODE.NO_ERROR
+        val responseCode = ResponseCode.NO_ERROR
         var id = 0
         var recursionDesired = false
 
@@ -393,27 +367,27 @@ data class DnsMessage(
             val recursionAvailable = ((header shr 7) and 1) == 1
             val authenticData = ((header shr 5) and 1) == 1
             val checkingDisabled = ((header shr 4) and 1) == 1
-            val responseCode = RESPONSE_CODE.Companion.getResponseCode(header and 0xf)
+            val responseCode = ResponseCode.Companion.getResponseCode(header and 0xf)
             val receiveTimestamp = System.currentTimeMillis()
             val questionCount = dis.readUnsignedShort()
             val answerCount = dis.readUnsignedShort()
             val nameserverCount = dis.readUnsignedShort()
             val additionalResourceRecordCount = dis.readUnsignedShort()
             val questions: MutableList<DnsQuestion> = mutableListOf()
-            for (i in 0..<questionCount) {
+            repeat (questionCount) {
                 questions.add(DnsQuestion.Companion.parse(dis, data))
             }
             val answerSection: MutableList<DnsRecord> = mutableListOf()
-            for (i in 0..<answerCount) {
+            repeat (answerCount) {
                 answerSection.add(DnsRecord.Companion.parse(dis, data))
             }
             val authoritySection: MutableList<DnsRecord> = mutableListOf()
-            for (i in 0..<nameserverCount) {
+            repeat (nameserverCount) {
                 authoritySection.add(DnsRecord.Companion.parse(dis, data))
             }
             val additionalSection: MutableList<DnsRecord> =
                 mutableListOf()
-            for (i in 0..<additionalResourceRecordCount) {
+            repeat (additionalResourceRecordCount) {
                 additionalSection.add(DnsRecord.Companion.parse(dis, data))
             }
             val optRrPosition: Int = getOptRrPosition(additionalSection)
@@ -456,21 +430,16 @@ data class DnsMessage(
             val recursionAvailable = false
             val authenticData = false
             val checkingDisabled = false
-            val questions: List<DnsQuestion>
-            if (builder.questions == null) {
-                questions = QUESTIONS_EMPTY
+            val questions: List<DnsQuestion> = if (builder.questions == null) {
+                QUESTIONS_EMPTY
             } else {
-                questions = builder.questions!!
+                builder.questions!!
             }
 
             val additionalSection: List<DnsRecord>
 
-            if (builder.ednsBuilder == null) {
-                additionalSection = RECORDS_EMPTY
-            } else {
-                val dnsEdns = builder.ednsBuilder!!.build()
-                additionalSection = listOf(dnsEdns.asRecord())
-            }
+            val dnsEdns = builder.ednsBuilder.build()
+            additionalSection = listOf(dnsEdns.asRecord())
 
             val optRrPosition: Int = getOptRrPosition(additionalSection)
 

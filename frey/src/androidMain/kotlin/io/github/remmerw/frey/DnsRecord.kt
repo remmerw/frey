@@ -9,7 +9,6 @@ import java.io.OutputStream
 /**
  * A generic DNS record.
  */
-@JvmRecord
 data class DnsRecord(
     val name: DnsName, val type: TYPE?, val clazz: CLASS?, val clazzValue: Int, val ttl: Long,
     /**
