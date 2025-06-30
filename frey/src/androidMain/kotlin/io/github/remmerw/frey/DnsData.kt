@@ -1,83 +1,80 @@
-package io.github.remmerw.frey;
+package io.github.remmerw.frey
 
+import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.IOException
+import java.nio.charset.StandardCharsets
+import java.util.Arrays
+import java.util.Collections
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Generic payload class.
  */
-public interface DnsData {
+interface DnsData {
+    fun bytes(): ByteArray
 
-    byte[] bytes();
 
-
-    default int length() {
-        return bytes().length;
+    fun length(): Int {
+        return bytes().size
     }
 
     /**
-     * Write the binary representation of this payload to the given {@link DataOutputStream}.
+     * Write the binary representation of this payload to the given [DataOutputStream].
      *
      * @param dos the DataOutputStream to write to.
      * @throws IOException if an I/O error occurs.
      */
-    default void toOutputStream(DataOutputStream dos) throws IOException {
-        dos.write(bytes());
+    @Throws(IOException::class)
+    fun toOutputStream(dos: DataOutputStream) {
+        dos.write(bytes())
     }
 
     /**
      * OPT payload (see RFC 2671 for details).
      */
-    record OPT(List<DnsEdns.Option> variablePart) implements DnsData {
-
-        public static OPT parse(DataInputStream dis, int payloadLength) throws IOException {
-            List<DnsEdns.Option> variablePart;
-            if (payloadLength == 0) {
-                variablePart = Collections.emptyList();
-            } else {
-                int payloadLeft = payloadLength;
-                variablePart = new ArrayList<>(4);
-                while (payloadLeft > 0) {
-                    int optionCode = dis.readUnsignedShort();
-                    int optionLength = dis.readUnsignedShort();
-                    byte[] optionData = new byte[optionLength];
-                    //noinspection ResultOfMethodCallIgnored
-                    dis.read(optionData);
-                    DnsEdns.Option option = DnsEdns.Option.parse(optionCode, optionData);
-                    variablePart.add(option);
-                    payloadLeft -= 2 + 2 + optionLength;
-                    // Assert that payloadLeft never becomes negative
-                    assert payloadLeft >= 0;
+    @JvmRecord
+    data class OPT(val variablePart: MutableList<DnsEdns.Option>?) : DnsData {
+        override fun bytes(): ByteArray {
+            val baos = ByteArrayOutputStream()
+            val dos = DataOutputStream(baos)
+            try {
+                for (endsOption in variablePart!!) {
+                    endsOption.writeToDos(dos)
                 }
+            } catch (e: IOException) {
+                // Should never happen.
+                throw AssertionError(e)
             }
-
-            return new OPT(variablePart);
+            return baos.toByteArray()
         }
 
-
-        @Override
-        public byte[] bytes() {
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(baos);
-            try {
-                for (DnsEdns.Option endsOption : variablePart) {
-                    endsOption.writeToDos(dos);
+        companion object {
+            @JvmStatic
+            @Throws(IOException::class)
+            fun parse(dis: DataInputStream, payloadLength: Int): OPT {
+                val variablePart: MutableList<DnsEdns.Option>?
+                if (payloadLength == 0) {
+                    variablePart = mutableListOf<DnsEdns.Option>()
+                } else {
+                    var payloadLeft = payloadLength
+                    variablePart = ArrayList<DnsEdns.Option>(4)
+                    while (payloadLeft > 0) {
+                        val optionCode = dis.readUnsignedShort()
+                        val optionLength = dis.readUnsignedShort()
+                        val optionData = ByteArray(optionLength)
+                        dis.read(optionData)
+                        val option = DnsEdns.Option.parse(optionCode, optionData)
+                        variablePart.add(option)
+                        payloadLeft -= 2 + 2 + optionLength
+                        // Assert that payloadLeft never becomes negative
+                        assert(payloadLeft >= 0)
+                    }
                 }
-            } catch (IOException e) {
-                // Should never happen.
-                throw new AssertionError(e);
+
+                return OPT(variablePart)
             }
-            return baos.toByteArray();
         }
     }
 
@@ -86,80 +83,94 @@ public interface DnsData {
      * followed by that many bytes of data, which can usually be interpreted as ASCII strings
      * but not always.
      */
-    record TXT(byte[] blob) implements DnsData {
-
-        public static TXT parse(DataInputStream dis, int length) throws IOException {
-            byte[] blob = new byte[length];
-            dis.readFully(blob);
-            return new TXT(blob);
-        }
-
-        public String getText() {
-            StringBuilder sb = new StringBuilder();
-            Iterator<String> it = getCharacterStrings().iterator();
-            while (it.hasNext()) {
-                sb.append(it.next());
-                if (it.hasNext()) {
-                    sb.append(" / ");
+    @JvmRecord
+    data class TXT(val blob: ByteArray) : DnsData {
+        val text: String
+            get() {
+                val sb = StringBuilder()
+                val it =
+                    this.characterStrings.iterator()
+                while (it.hasNext()) {
+                    sb.append(it.next())
+                    if (it.hasNext()) {
+                        sb.append(" / ")
+                    }
                 }
+                return sb.toString()
             }
-            return sb.toString();
-        }
 
-        private List<String> getCharacterStrings() {
-            List<byte[]> extents = getExtents();
-            List<String> characterStrings = new ArrayList<>(extents.size());
-            for (byte[] extent : extents) {
-                characterStrings.add(new String(extent, StandardCharsets.UTF_8));
+        private val characterStrings: MutableList<String?>
+            get() {
+                val extents = this.extents
+                val characterStrings: MutableList<String?> =
+                    ArrayList<String?>(extents.size)
+                for (extent in extents) {
+                    characterStrings.add(
+                        String(
+                            extent!!,
+                            StandardCharsets.UTF_8
+                        )
+                    )
+                }
+                return Collections.unmodifiableList<String?>(characterStrings)
             }
-            return Collections.unmodifiableList(characterStrings);
-        }
 
-        private List<byte[]> getExtents() {
-            ArrayList<byte[]> extents = new ArrayList<>();
-            int segLength;
-            for (int used = 0; used < blob.length; used += segLength) {
-                segLength = 0x00ff & blob[used];
-                int end = ++used + segLength;
-                byte[] extent = Arrays.copyOfRange(blob, used, end);
-                extents.add(extent);
+        private val extents: MutableList<ByteArray?>
+            get() {
+                val extents =
+                    ArrayList<ByteArray?>()
+                var segLength: Int
+                var used = 0
+                while (used < blob!!.size) {
+                    segLength = 0x00ff and blob[used].toInt()
+                    val end = ++used + segLength
+                    val extent = Arrays.copyOfRange(blob, used, end)
+                    extents.add(extent)
+                    used += segLength
+                }
+                return extents
             }
-            return extents;
+
+
+        override fun toString(): String {
+            return "\"" + this.text + "\""
         }
 
-
-        @Override
-        public String toString() {
-            return "\"" + getText() + "\"";
+        override fun bytes(): ByteArray {
+            return blob
         }
 
-        @Override
-        public byte[] bytes() {
-            return blob;
+        companion object {
+            @JvmStatic
+            @Throws(IOException::class)
+            fun parse(dis: DataInputStream, length: Int): TXT {
+                val blob = ByteArray(length)
+                dis.readFully(blob)
+                return TXT(blob)
+            }
         }
-
     }
 
 
-    record UNKNOWN(byte[] data) implements DnsData {
-
-
-        private static UNKNOWN create(DataInputStream dis, int payloadLength) throws IOException {
-            byte[] data = new byte[payloadLength];
-            dis.readFully(data);
-            return new UNKNOWN(data);
+    @JvmRecord
+    data class UNKNOWN(val data: ByteArray) : DnsData {
+        override fun bytes(): ByteArray {
+            return data
         }
 
-        public static UNKNOWN parse(DataInputStream dis, int payloadLength)
-                throws IOException {
-            return UNKNOWN.create(dis, payloadLength);
+        companion object {
+            @Throws(IOException::class)
+            private fun create(dis: DataInputStream, payloadLength: Int): UNKNOWN {
+                val data = ByteArray(payloadLength)
+                dis.readFully(data)
+                return UNKNOWN(data)
+            }
+
+            @JvmStatic
+            @Throws(IOException::class)
+            fun parse(dis: DataInputStream, payloadLength: Int): UNKNOWN {
+                return create(dis, payloadLength)
+            }
         }
-
-
-        @Override
-        public byte[] bytes() {
-            return data;
-        }
-
     }
 }

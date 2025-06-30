@@ -1,136 +1,133 @@
-package io.github.remmerw.frey;
+package io.github.remmerw.frey
 
+import io.github.remmerw.frey.DnsData.OPT
+import java.io.DataOutputStream
+import java.io.IOException
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * EDNS - Extension Mechanism for DNS.
  *
- * @see <a href="https://tools.ietf.org/html/rfc6891">RFC 6891 - Extension Mechanisms for DNS (EDNS(0))</a>
- */
-public record DnsEdns(int udpPayloadSize, int extendedRcode, int version,
-                      int flags, List<Option> variablePart) {
-
-    /**
-     * Inform the dns server that the client supports DNSSEC.
-     */
-    private static final int FLAG_DNSSEC_OK = 0x8000;
-    private static final List<Option> VARIABLE_PART = new ArrayList<>();
-
-
-    private static DnsEdns create(Builder builder) {
-        int flags = 0;
-        if (builder.dnssecOk) {
-            flags |= FLAG_DNSSEC_OK;
-        }
-        return new DnsEdns(builder.udpPayloadSize, 0, 0, flags, VARIABLE_PART);
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public DnsRecord asRecord() {
-        long optFlags = flags;
-        optFlags |= (long) extendedRcode << 8;
-        optFlags |= (long) version << 16;
-        return DnsRecord.create(DnsName.root(), DnsRecord.TYPE.OPT,
-                udpPayloadSize, optFlags, new DnsData.OPT(variablePart));
+ * @see [RFC 6891 - Extension Mechanisms for DNS
+](https://tools.ietf.org/html/rfc6891) */
+@JvmRecord
+data class DnsEdns(
+    val udpPayloadSize: Int, val extendedRcode: Int, val version: Int,
+    val flags: Int, val variablePart: MutableList<Option>
+) {
+    fun asRecord(): DnsRecord {
+        var optFlags = flags.toLong()
+        optFlags = optFlags or (extendedRcode.toLong() shl 8)
+        optFlags = optFlags or (version.toLong() shl 16)
+        return DnsRecord.create(
+            DnsName.root(), DnsRecord.TYPE.OPT,
+            udpPayloadSize, optFlags, OPT(variablePart)
+        )
     }
 
 
     /**
      * The EDNS option code.
      *
-     * @see <a href="http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11">IANA - DNS EDNS0 Option Codes (OPT)</a>
-     */
-    public enum OptionCode {
+     * @see [IANA - DNS EDNS0 Option Codes
+    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-11) */
+    enum class OptionCode(val asInt: Int) {
         UNKNOWN(-1),
         NSID(3),
         ;
 
-        private static final Map<Integer, OptionCode> INVERSE_LUT = new HashMap<>(OptionCode.values().length);
+        companion object {
+            private val INVERSE_LUT: MutableMap<Int?, OptionCode?> = HashMap<Int?, OptionCode?>(
+                entries.size
+            )
 
-        static {
-            for (OptionCode optionCode : OptionCode.values()) {
-                INVERSE_LUT.put(optionCode.asInt, optionCode);
+            init {
+                for (optionCode in entries) {
+                    INVERSE_LUT.put(optionCode.asInt, optionCode)
+                }
             }
-        }
 
-        final int asInt;
-
-        OptionCode(int optionCode) {
-            this.asInt = optionCode;
-        }
-
-        public static OptionCode from(int optionCode) {
-            OptionCode res = INVERSE_LUT.get(optionCode);
-            if (res == null) res = OptionCode.UNKNOWN;
-            return res;
+            fun from(optionCode: Int): OptionCode {
+                var res = INVERSE_LUT.get(optionCode)
+                if (res == null) res = UNKNOWN
+                return res
+            }
         }
     }
 
-    public static final class Builder {
-        private int udpPayloadSize;
-        private boolean dnssecOk;
+    class EdnsBuilder() {
+        var udpPayloadSize = 0
+        var dnssecOk = false
 
 
-        private Builder() {
+        fun setUdpPayloadSize(udpPayloadSize: Int): EdnsBuilder {
+            require(udpPayloadSize <= 0xffff) { "UDP payload size must not be greater than 65536, was " + udpPayloadSize }
+            this.udpPayloadSize = udpPayloadSize
+            return this
         }
 
-        public Builder setUdpPayloadSize(int udpPayloadSize) {
-            if (udpPayloadSize > 0xffff) {
-                throw new IllegalArgumentException("UDP payload size must not be greater than 65536, was " + udpPayloadSize);
-            }
-            this.udpPayloadSize = udpPayloadSize;
-            return this;
+        fun setDnssecOk(dnssecOk: Boolean): EdnsBuilder {
+            this.dnssecOk = dnssecOk
+            return this
         }
 
-        @SuppressWarnings("UnusedReturnValue")
-        public Builder setDnssecOk(boolean dnssecOk) {
-            this.dnssecOk = dnssecOk;
-            return this;
-        }
-
-        public DnsEdns build() {
-            return DnsEdns.create(this);
+        fun build(): DnsEdns {
+            return create(this)
         }
     }
 
 
-    public record Option(int optionCode, int optionLength, byte[] optionData) {
-
-        static Option create(int optionCode, byte[] optionData) {
-            return new Option(optionCode, optionData.length, optionData);
+    @JvmRecord
+    data class Option(val optionCode: Int, val optionLength: Int, val optionData: ByteArray?) {
+        @Throws(IOException::class)
+        fun writeToDos(dos: DataOutputStream) {
+            dos.writeShort(optionCode)
+            dos.writeShort(optionLength)
+            dos.write(optionData)
         }
 
-        static Option create(byte[] optionData, OptionCode optionCode) {
-            return new Option(optionCode.asInt, optionData.length, optionData);
-        }
 
-        public static Option parse(int intOptionCode, byte[] optionData) {
-            OptionCode optionCode = OptionCode.from(intOptionCode);
-            Option res;
-            if (optionCode == OptionCode.NSID) {
-                res = Option.create(optionData, optionCode);
-            } else {
-                res = Option.create(intOptionCode, optionData);
+        companion object {
+            fun create(optionCode: Int, optionData: ByteArray): Option {
+                return Option(optionCode, optionData.size, optionData)
             }
-            return res;
+
+            fun create(optionData: ByteArray, optionCode: OptionCode): Option {
+                return Option(optionCode.asInt, optionData.size, optionData)
+            }
+
+            fun parse(intOptionCode: Int, optionData: ByteArray): Option {
+                val optionCode = OptionCode.Companion.from(intOptionCode)
+                val res: Option
+                if (optionCode == OptionCode.NSID) {
+                    res = create(optionData, optionCode)
+                } else {
+                    res = create(intOptionCode, optionData)
+                }
+                return res
+            }
         }
-
-        public void writeToDos(DataOutputStream dos) throws IOException {
-            dos.writeShort(optionCode);
-            dos.writeShort(optionLength);
-            dos.write(optionData);
-        }
-
-
     }
 
+    companion object {
+        /**
+         * Inform the dns server that the client supports DNSSEC.
+         */
+        private const val FLAG_DNSSEC_OK = 0x8000
+        private val VARIABLE_PART: MutableList<Option> = ArrayList<Option>()
+
+
+        private fun create(builder: EdnsBuilder): DnsEdns {
+            var flags = 0
+            if (builder.dnssecOk) {
+                flags = flags or FLAG_DNSSEC_OK
+            }
+            return DnsEdns(builder.udpPayloadSize, 0, 0, flags, VARIABLE_PART)
+        }
+
+        @JvmStatic
+        fun builder(): EdnsBuilder {
+            return EdnsBuilder()
+        }
+    }
 }

@@ -1,318 +1,181 @@
-package io.github.remmerw.frey;
+package io.github.remmerw.frey
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.IOException
+import java.io.OutputStream
+import java.net.DatagramPacket
+import java.net.InetAddress
+import java.util.Arrays
 
 /**
  * A DNS message as defined by RFC 1035. The message consists of a header and
  * 4 sections: question, answer, nameserver and addition resource record
  * section.
  *
- * @see <a href="https://www.ietf.org/rfc/rfc1035.txt">RFC 1035</a>
+ * @see [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt)
  */
-public record DnsMessage(int id, OPCODE opcode, RESPONSE_CODE responseCode,
-                         long receiveTimestamp, int optRrPosition, boolean recursionAvailable,
-                         boolean qr, boolean authoritativeAnswer, boolean truncated,
-                         boolean recursionDesired, boolean authenticData,
-                         boolean checkingDisabled, DnsQuestion[] questions,
-                         DnsRecord[] answerSection,
-                         DnsRecord[] authoritySection, DnsRecord[] additionalSection) {
-
-    private static final DnsQuestion[] QUESTIONS_EMPTY = new DnsQuestion[0];
-    private static final DnsRecord[] RECORDS_EMPTY = new DnsRecord[0];
-
-
-    /**
-     * Build a DNS Message based on a binary DNS message.
-     *
-     * @param data The DNS message data.
-     * @throws IOException On read errors.
-     */
-    static DnsMessage parse(byte[] data) throws IOException {
-        ByteArrayInputStream bis = new ByteArrayInputStream(data);
-        DataInputStream dis = new DataInputStream(bis);
-        int id = dis.readUnsignedShort();
-        int header = dis.readUnsignedShort();
-        boolean qr = ((header >> 15) & 1) == 1;
-        OPCODE opcode = OPCODE.getOpcode((header >> 11) & 0xf);
-        boolean authoritativeAnswer = ((header >> 10) & 1) == 1;
-        boolean truncated = ((header >> 9) & 1) == 1;
-        boolean recursionDesired = ((header >> 8) & 1) == 1;
-        boolean recursionAvailable = ((header >> 7) & 1) == 1;
-        boolean authenticData = ((header >> 5) & 1) == 1;
-        boolean checkingDisabled = ((header >> 4) & 1) == 1;
-        RESPONSE_CODE responseCode = RESPONSE_CODE.getResponseCode(header & 0xf);
-        long receiveTimestamp = System.currentTimeMillis();
-        int questionCount = dis.readUnsignedShort();
-        int answerCount = dis.readUnsignedShort();
-        int nameserverCount = dis.readUnsignedShort();
-        int additionalResourceRecordCount = dis.readUnsignedShort();
-        DnsQuestion[] questions = new DnsQuestion[questionCount];
-        for (int i = 0; i < questionCount; i++) {
-            questions[i] = DnsQuestion.parse(dis, data);
-        }
-        DnsRecord[] answerSection = new DnsRecord[answerCount];
-        for (int i = 0; i < answerCount; i++) {
-            answerSection[i] = DnsRecord.parse(dis, data);
-        }
-        DnsRecord[] authoritySection = new DnsRecord[nameserverCount];
-        for (int i = 0; i < nameserverCount; i++) {
-            authoritySection[i] = DnsRecord.parse(dis, data);
-        }
-        DnsRecord[] additionalSection = new DnsRecord[additionalResourceRecordCount];
-        for (int i = 0; i < additionalResourceRecordCount; i++) {
-            additionalSection[i] = DnsRecord.parse(dis, data);
-        }
-        int optRrPosition = getOptRrPosition(additionalSection);
-
-        return new DnsMessage(id, opcode, responseCode,
-                receiveTimestamp, optRrPosition, recursionAvailable,
-                qr, authoritativeAnswer, truncated,
-                recursionDesired, authenticData,
-                checkingDisabled, questions, answerSection,
-                authoritySection, additionalSection);
+@JvmRecord
+data class DnsMessage(
+    val id: Int, val opcode: OPCODE?, val responseCode: RESPONSE_CODE?,
+    val receiveTimestamp: Long, val optRrPosition: Int, val recursionAvailable: Boolean,
+    val qr: Boolean, val authoritativeAnswer: Boolean, val truncated: Boolean,
+    val recursionDesired: Boolean, val authenticData: Boolean,
+    val checkingDisabled: Boolean, val questions: List<DnsQuestion>?,
+    val answerSection: List<DnsRecord>,
+    val authoritySection: List<DnsRecord>?, val additionalSection: List<DnsRecord>?
+) {
+    fun asDatagram(address: InetAddress?): DatagramPacket {
+        val bytes = serialize()
+        return DatagramPacket(bytes, bytes.size, address, 53)
     }
 
-    /**
-     * Constructs an normalized version of the given DnsMessage by setting the id to '0'.
-     *
-     * @param message the message of which normalized version should be constructed.
-     */
-    private static DnsMessage normalized(DnsMessage message) {
-        return new DnsMessage(0, message.opcode, message.responseCode,
-                message.receiveTimestamp, message.optRrPosition, message.recursionAvailable,
-                message.qr, message.authoritativeAnswer, message.truncated,
-                message.recursionDesired, message.authenticData,
-                message.checkingDisabled, message.questions, message.answerSection,
-                message.authoritySection, message.additionalSection);
-    }
-
-    private static DnsMessage create(Builder builder) {
-        int id = builder.id;
-        OPCODE opcode = builder.opcode;
-        RESPONSE_CODE responseCode = builder.responseCode;
-        long receiveTimestamp = -1;
-        boolean qr = false;
-        boolean authoritativeAnswer = false;
-        boolean truncated = false;
-        boolean recursionDesired = builder.recursionDesired;
-        boolean recursionAvailable = false;
-        boolean authenticData = false;
-        boolean checkingDisabled = false;
-        DnsQuestion[] questions;
-        if (builder.questions == null) {
-            questions = QUESTIONS_EMPTY;
-        } else {
-            questions = builder.questions;
-        }
-
-        DnsRecord[] additionalSection;
-
-        if (builder.ednsBuilder == null) {
-            additionalSection = RECORDS_EMPTY;
-        } else {
-            DnsEdns dnsEdns = builder.ednsBuilder.build();
-            additionalSection = new DnsRecord[]{dnsEdns.asRecord()};
-        }
-
-        int optRrPosition = getOptRrPosition(additionalSection);
-
-        if (optRrPosition != -1) {
-            // Verify that there are no further OPT records but the one we already found.
-            for (int i = optRrPosition + 1; i < additionalSection.length; i++) {
-                if (additionalSection[i].type() == DnsRecord.TYPE.OPT) {
-                    throw new IllegalArgumentException("There must be only one OPT pseudo RR in the additional section");
-                }
-            }
-        }
-        return new DnsMessage(id, opcode, responseCode,
-                receiveTimestamp, optRrPosition, recursionAvailable,
-                qr, authoritativeAnswer, truncated,
-                recursionDesired, authenticData,
-                checkingDisabled, questions, RECORDS_EMPTY,
-                RECORDS_EMPTY, additionalSection);
-    }
-
-    private static int getOptRrPosition(DnsRecord[] additionalSection) {
-        int optRrPosition = -1;
-        for (int i = 0; i < additionalSection.length; i++) {
-            DnsRecord dnsRecord = additionalSection[i];
-            if (dnsRecord.type() == DnsRecord.TYPE.OPT) {
-                optRrPosition = i;
-                break;
-            }
-        }
-        return optRrPosition;
-    }
-
-    public static Builder builder() {
-        return new DnsMessage.Builder();
-    }
-
-    DatagramPacket asDatagram(InetAddress address) {
-        byte[] bytes = serialize();
-        return new DatagramPacket(bytes, bytes.length, address, 53);
-    }
-
-    void writeTo(OutputStream outputStream) throws IOException {
-        byte[] bytes = serialize();
-        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
-        dataOutputStream.writeShort(bytes.length);
-        dataOutputStream.write(bytes);
+    @Throws(IOException::class)
+    fun writeTo(outputStream: OutputStream?) {
+        val bytes = serialize()
+        val dataOutputStream = DataOutputStream(outputStream)
+        dataOutputStream.writeShort(bytes.size)
+        dataOutputStream.write(bytes)
     }
 
 
-    private byte[] serialize() {
-
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(512);
-        DataOutputStream dos = new DataOutputStream(baos);
-        int header = calculateHeaderBitmap();
+    private fun serialize(): ByteArray {
+        val baos = ByteArrayOutputStream(512)
+        val dos = DataOutputStream(baos)
+        val header = calculateHeaderBitmap()
         try {
-            dos.writeShort((short) id);
-            dos.writeShort((short) header);
+            dos.writeShort(id.toShort().toInt())
+            dos.writeShort(header.toShort().toInt())
             if (questions == null) {
-                dos.writeShort(0);
+                dos.writeShort(0)
             } else {
-                dos.writeShort((short) questions.length);
+                dos.writeShort(questions.size.toShort().toInt())
             }
             if (answerSection == null) {
-                dos.writeShort(0);
+                dos.writeShort(0)
             } else {
-                dos.writeShort((short) answerSection.length);
+                dos.writeShort(answerSection.size.toShort().toInt())
             }
             if (authoritySection == null) {
-                dos.writeShort(0);
+                dos.writeShort(0)
             } else {
-                dos.writeShort((short) authoritySection.length);
+                dos.writeShort(authoritySection.size.toShort().toInt())
             }
             if (additionalSection == null) {
-                dos.writeShort(0);
+                dos.writeShort(0)
             } else {
-                dos.writeShort((short) additionalSection.length);
+                dos.writeShort(additionalSection.size.toShort().toInt())
             }
             if (questions != null) {
-                for (DnsQuestion question : questions) {
-                    dos.write(question.toByteArray());
+                for (question in questions) {
+                    dos.write(question.toByteArray())
                 }
             }
             if (answerSection != null) {
-                for (DnsRecord answer : answerSection) {
-                    dos.write(answer.toByteArray());
+                for (answer in answerSection) {
+                    dos.write(answer.toByteArray())
                 }
             }
             if (authoritySection != null) {
-                for (DnsRecord nameserverDnsRecord : authoritySection) {
-                    dos.write(nameserverDnsRecord.toByteArray());
+                for (nameserverDnsRecord in authoritySection) {
+                    dos.write(nameserverDnsRecord.toByteArray())
                 }
             }
             if (additionalSection != null) {
-                for (DnsRecord additionalResourceDnsRecord : additionalSection) {
-                    dos.write(additionalResourceDnsRecord.toByteArray());
+                for (additionalResourceDnsRecord in additionalSection) {
+                    dos.write(additionalResourceDnsRecord.toByteArray())
                 }
             }
-            dos.flush();
-        } catch (IOException e) {
+            dos.flush()
+        } catch (e: IOException) {
             // Should never happen.
-            throw new AssertionError(e);
+            throw AssertionError(e)
         }
-        return baos.toByteArray();
-
+        return baos.toByteArray()
     }
 
-    private int calculateHeaderBitmap() {
-        int header = 0;
+    private fun calculateHeaderBitmap(): Int {
+        var header = 0
         if (qr) {
-            header += 1 << 15;
+            header += 1 shl 15
         }
         if (opcode != null) {
-            header += opcode.getValue() << 11;
+            header += opcode.value.toInt() shl 11
         }
         if (authoritativeAnswer) {
-            header += 1 << 10;
+            header += 1 shl 10
         }
         if (truncated) {
-            header += 1 << 9;
+            header += 1 shl 9
         }
         if (recursionDesired) {
-            header += 1 << 8;
+            header += 1 shl 8
         }
         if (recursionAvailable) {
-            header += 1 << 7;
+            header += 1 shl 7
         }
         if (authenticData) {
-            header += 1 << 5;
+            header += 1 shl 5
         }
         if (checkingDisabled) {
-            header += 1 << 4;
+            header += 1 shl 4
         }
         if (responseCode != null) {
-            header += responseCode.getValue();
+            header += responseCode.value.toInt()
         }
-        return header;
+        return header
     }
 
-    DnsQuestion getQuestion() {
-        return questions[0];
-    }
+    val question: DnsQuestion
+        get() = questions!![0]
 
 
-    /**
-     * Get the minimum TTL from all answers in seconds.
-     *
-     * @return the minimum TTL from all answers in seconds.
-     */
-    long getAnswersMinTtl() {
-        long answersMinTtlCache = Long.MAX_VALUE;
-        for (DnsRecord r : answerSection) {
-            answersMinTtlCache = Math.min(answersMinTtlCache, r.ttl());
+    val answersMinTtl: Long
+        /**
+         * Get the minimum TTL from all answers in seconds.
+         *
+         * @return the minimum TTL from all answers in seconds.
+         */
+        get() {
+            var answersMinTtlCache = java.lang.Long.MAX_VALUE
+            for (r in answerSection!!) {
+                answersMinTtlCache = Math.min(answersMinTtlCache, r.ttl)
+            }
+            return answersMinTtlCache
         }
-        return answersMinTtlCache;
+
+
+    fun asNormalizedVersion(): DnsMessage {
+        return normalized(this)
     }
 
-
-    DnsMessage asNormalizedVersion() {
-        return DnsMessage.normalized(this);
+    override fun hashCode(): Int {
+        val bytes = serialize()
+        return Arrays.hashCode(bytes)
     }
 
-    @Override
-    public int hashCode() {
-        byte[] bytes = serialize();
-        return Arrays.hashCode(bytes);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (!(other instanceof DnsMessage otherDnsMessage)) {
-            return false;
+    override fun equals(other: Any?): Boolean {
+        if (other !is DnsMessage) {
+            return false
         }
-        if (other == this) {
-            return true;
+        if (other === this) {
+            return true
         }
-        byte[] otherBytes = otherDnsMessage.serialize();
-        byte[] myBytes = serialize();
-        return Arrays.equals(myBytes, otherBytes);
+        val otherBytes = other.serialize()
+        val myBytes = serialize()
+        return Arrays.equals(myBytes, otherBytes)
     }
 
     /**
      * Possible DNS response codes.
      *
-     * @see <a href=
-     * "http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6">
-     * IANA Domain Name System (DNS) Paramters - DNS RCODEs</a>
-     * @see <a href="http://tools.ietf.org/html/rfc6895#section-2.3">RFC 6895 § 2.3</a>
-     */
-    public enum RESPONSE_CODE {
+     * @see [
+     * IANA Domain Name System
+     * @see [RFC 6895 § 2.3](http://tools.ietf.org/html/rfc6895.section-2.3)
+    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-6) */
+    enum class RESPONSE_CODE(value: Int) {
         NO_ERROR(0),
         FORMAT_ERR(1),
         SERVER_FAIL(2),
@@ -335,63 +198,61 @@ public record DnsMessage(int id, OPCODE opcode, RESPONSE_CODE responseCode,
         ;
 
         /**
-         * Reverse lookup table for response codes.
+         * Retrieve the byte value of the response code.
+         *
+         * @return the response code.
          */
-        private static final Map<Integer, RESPONSE_CODE> INVERSE_LUT = new HashMap<>(RESPONSE_CODE.values().length);
-
-        static {
-            for (RESPONSE_CODE responseCode : RESPONSE_CODE.values()) {
-                INVERSE_LUT.put((int) responseCode.value, responseCode);
-            }
-        }
-
         /**
          * The response code value.
          */
-        private final byte value;
+        val value: Byte
 
         /**
          * Create a new response code.
          *
          * @param value The response code value.
          */
-        RESPONSE_CODE(int value) {
-            this.value = (byte) value;
+        init {
+            this.value = value.toByte()
         }
 
-        /**
-         * Retrieve the response code for a byte value.
-         *
-         * @param value The byte value.
-         * @return The symbolic response code or null.
-         * @throws IllegalArgumentException if the value is not in the range of 0..15.
-         */
-        static RESPONSE_CODE getResponseCode(int value) throws IllegalArgumentException {
-            if (value < 0 || value > 65535) {
-                throw new IllegalArgumentException();
+        companion object {
+            /**
+             * Reverse lookup table for response codes.
+             */
+            private val INVERSE_LUT: MutableMap<Int?, RESPONSE_CODE?> =
+                HashMap<Int?, RESPONSE_CODE?>(
+                    entries.size
+                )
+
+            init {
+                for (responseCode in entries) {
+                    INVERSE_LUT.put(responseCode.value.toInt(), responseCode)
+                }
             }
-            return INVERSE_LUT.get(value);
-        }
 
-        /**
-         * Retrieve the byte value of the response code.
-         *
-         * @return the response code.
-         */
-        byte getValue() {
-            return value;
+            /**
+             * Retrieve the response code for a byte value.
+             *
+             * @param value The byte value.
+             * @return The symbolic response code or null.
+             * @throws IllegalArgumentException if the value is not in the range of 0..15.
+             */
+            @Throws(IllegalArgumentException::class)
+            fun getResponseCode(value: Int): RESPONSE_CODE? {
+                require(!(value < 0 || value > 65535))
+                return INVERSE_LUT.get(value)
+            }
         }
-
     }
 
     /**
      * Symbolic DNS Opcode values.
      *
-     * @see <a href=
-     * "http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5">
-     * IANA Domain Name System (DNS) Paramters - DNS OpCodes</a>
-     */
-    public enum OPCODE {
+     * @see [
+     * IANA Domain Name System
+    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-5) */
+    enum class OPCODE {
         QUERY,
         INVERSE_QUERY,
         STATUS,
@@ -401,73 +262,77 @@ public record DnsMessage(int id, OPCODE opcode, RESPONSE_CODE responseCode,
         ;
 
         /**
-         * Lookup table for for opcode resolution.
-         */
-        private static final OPCODE[] INVERSE_LUT = new OPCODE[OPCODE.values().length];
-
-        static {
-            for (OPCODE opcode : OPCODE.values()) {
-                if (INVERSE_LUT[opcode.value] != null) {
-                    throw new IllegalStateException();
-                }
-                INVERSE_LUT[opcode.value] = opcode;
-            }
-        }
-
-        /**
-         * The value of this opcode.
-         */
-        private final byte value;
-
-        /**
-         * Create a new opcode for a given byte value.
-         */
-        OPCODE() {
-            this.value = (byte) this.ordinal();
-        }
-
-        /**
-         * Retrieve the symbolic name of an opcode byte.
-         *
-         * @param value The byte value of the opcode.
-         * @return The symbolic opcode or null.
-         * @throws IllegalArgumentException If the byte value is not in the
-         *                                  range 0..15.
-         */
-        static OPCODE getOpcode(int value) throws IllegalArgumentException {
-            if (value < 0 || value > 15) {
-                throw new IllegalArgumentException();
-            }
-            if (value >= INVERSE_LUT.length) {
-                return null;
-            }
-            return INVERSE_LUT[value];
-        }
-
-        /**
          * Retrieve the byte value of this opcode.
          *
          * @return The byte value of this opcode.
          */
-        byte getValue() {
-            return value;
+        /**
+         * The value of this opcode.
+         */
+        val value: Byte
+
+        /**
+         * Create a new opcode for a given byte value.
+         */
+        init {
+            this.value = this.ordinal.toByte()
         }
 
+        companion object {
+            /**
+             * Lookup table for for opcode resolution.
+             */
+            private val INVERSE_LUT = arrayOfNulls<OPCODE>(entries.size)
+
+            init {
+                for (opcode in entries) {
+                    check(INVERSE_LUT[opcode.value.toInt()] == null)
+                    INVERSE_LUT[opcode.value.toInt()] = opcode
+                }
+            }
+
+            /**
+             * Retrieve the symbolic name of an opcode byte.
+             *
+             * @param value The byte value of the opcode.
+             * @return The symbolic opcode or null.
+             * @throws IllegalArgumentException If the byte value is not in the
+             * range 0..15.
+             */
+            @Throws(IllegalArgumentException::class)
+            fun getOpcode(value: Int): OPCODE? {
+                require(!(value < 0 || value > 15))
+                if (value >= INVERSE_LUT.size) {
+                    return null
+                }
+                return INVERSE_LUT[value]
+            }
+        }
     }
 
-    public static final class Builder {
+    class Builder() {
+        val opcode = OPCODE.QUERY
+        val responseCode = RESPONSE_CODE.NO_ERROR
+        var id = 0
+        var recursionDesired = false
 
-        private final OPCODE opcode = OPCODE.QUERY;
-        private final RESPONSE_CODE responseCode = RESPONSE_CODE.NO_ERROR;
-        private int id;
-        private boolean recursionDesired;
+        var questions: List<DnsQuestion>? = null
 
-        private DnsQuestion[] questions;
-
-        private DnsEdns.Builder ednsBuilder;
-
-        private Builder() {
-        }
+        /**
+         * Get the @{link EDNS} builder. If no builder has been set so far, then a new one will be created.
+         *
+         *
+         * The EDNS record can be used to announce the supported size of UDP payload as well as additional flags.
+         *
+         *
+         *
+         * Note that some networks and firewalls are known to block big UDP payloads. 1280 should be a reasonable value,
+         * everything below 512 is treated as 512 and should work on all networks.
+         *
+         *
+         * @return a EDNS builder.
+         */
+        val ednsBuilder: DnsEdns.EdnsBuilder = DnsEdns.builder()
 
         /**
          * Set the current DNS message id.
@@ -475,10 +340,9 @@ public record DnsMessage(int id, OPCODE opcode, RESPONSE_CODE responseCode,
          * @param id The new DNS message id.
          * @return a reference to this builder.
          */
-        @SuppressWarnings("UnusedReturnValue")
-        public Builder setId(int id) {
-            this.id = id & 0xffff;
-            return this;
+        fun setId(id: Int): Builder {
+            this.id = id and 0xffff
+            return this
         }
 
         /**
@@ -486,10 +350,9 @@ public record DnsMessage(int id, OPCODE opcode, RESPONSE_CODE responseCode,
          *
          * @return a reference to this builder.
          */
-        @SuppressWarnings("UnusedReturnValue")
-        Builder setRecursionDesired() {
-            this.recursionDesired = true;
-            return this;
+        fun setRecursionDesired(): Builder {
+            this.recursionDesired = true
+            return this
         }
 
 
@@ -499,37 +362,154 @@ public record DnsMessage(int id, OPCODE opcode, RESPONSE_CODE responseCode,
          * @param dnsQuestion The question.
          * @return a reference to this builder.
          */
-        @SuppressWarnings("UnusedReturnValue")
-        Builder setQuestion(DnsQuestion dnsQuestion) {
-            this.questions = new DnsQuestion[1];
-            this.questions[0] = dnsQuestion;
-            return this;
+        fun setQuestion(dnsQuestion: DnsQuestion): Builder {
+            this.questions = listOf(dnsQuestion)
+            return this
+        }
+
+
+        fun build(): DnsMessage {
+            return create(this)
+        }
+    }
+
+    companion object {
+        private val QUESTIONS_EMPTY: List<DnsQuestion> = emptyList()
+        private val RECORDS_EMPTY: List<DnsRecord> = emptyList()
+
+
+        /**
+         * Build a DNS Message based on a binary DNS message.
+         *
+         * @param data The DNS message data.
+         * @throws IOException On read errors.
+         */
+        @Throws(IOException::class)
+        fun parse(data: ByteArray): DnsMessage {
+            val bis = ByteArrayInputStream(data)
+            val dis = DataInputStream(bis)
+            val id = dis.readUnsignedShort()
+            val header = dis.readUnsignedShort()
+            val qr = ((header shr 15) and 1) == 1
+            val opcode = OPCODE.Companion.getOpcode((header shr 11) and 0xf)
+            val authoritativeAnswer = ((header shr 10) and 1) == 1
+            val truncated = ((header shr 9) and 1) == 1
+            val recursionDesired = ((header shr 8) and 1) == 1
+            val recursionAvailable = ((header shr 7) and 1) == 1
+            val authenticData = ((header shr 5) and 1) == 1
+            val checkingDisabled = ((header shr 4) and 1) == 1
+            val responseCode = RESPONSE_CODE.Companion.getResponseCode(header and 0xf)
+            val receiveTimestamp = System.currentTimeMillis()
+            val questionCount = dis.readUnsignedShort()
+            val answerCount = dis.readUnsignedShort()
+            val nameserverCount = dis.readUnsignedShort()
+            val additionalResourceRecordCount = dis.readUnsignedShort()
+            val questions: MutableList<DnsQuestion> = mutableListOf()
+            for (i in 0..<questionCount) {
+                questions.add(DnsQuestion.Companion.parse(dis, data))
+            }
+            val answerSection: MutableList<DnsRecord> = mutableListOf()
+            for (i in 0..<answerCount) {
+                answerSection.add(DnsRecord.Companion.parse(dis, data))
+            }
+            val authoritySection: MutableList<DnsRecord> = mutableListOf()
+            for (i in 0..<nameserverCount) {
+                authoritySection.add(DnsRecord.Companion.parse(dis, data))
+            }
+            val additionalSection: MutableList<DnsRecord> =
+                mutableListOf()
+            for (i in 0..<additionalResourceRecordCount) {
+                additionalSection.add(DnsRecord.Companion.parse(dis, data))
+            }
+            val optRrPosition: Int = getOptRrPosition(additionalSection)
+
+            return DnsMessage(
+                id, opcode, responseCode,
+                receiveTimestamp, optRrPosition, recursionAvailable,
+                qr, authoritativeAnswer, truncated,
+                recursionDesired, authenticData,
+                checkingDisabled, questions, answerSection,
+                authoritySection, additionalSection
+            )
         }
 
         /**
-         * Get the @{link EDNS} builder. If no builder has been set so far, then a new one will be created.
-         * <p>
-         * The EDNS record can be used to announce the supported size of UDP payload as well as additional flags.
-         * </p>
-         * <p>
-         * Note that some networks and firewalls are known to block big UDP payloads. 1280 should be a reasonable value,
-         * everything below 512 is treated as 512 and should work on all networks.
-         * </p>
+         * Constructs an normalized version of the given DnsMessage by setting the id to '0'.
          *
-         * @return a EDNS builder.
+         * @param message the message of which normalized version should be constructed.
          */
-        DnsEdns.Builder getEdnsBuilder() {
-            if (ednsBuilder == null) {
-                ednsBuilder = DnsEdns.builder();
+        private fun normalized(message: DnsMessage): DnsMessage {
+            return DnsMessage(
+                0, message.opcode, message.responseCode,
+                message.receiveTimestamp, message.optRrPosition, message.recursionAvailable,
+                message.qr, message.authoritativeAnswer, message.truncated,
+                message.recursionDesired, message.authenticData,
+                message.checkingDisabled, message.questions, message.answerSection,
+                message.authoritySection, message.additionalSection
+            )
+        }
+
+        private fun create(builder: Builder): DnsMessage {
+            val id = builder.id
+            val opcode = builder.opcode
+            val responseCode = builder.responseCode
+            val receiveTimestamp: Long = -1
+            val qr = false
+            val authoritativeAnswer = false
+            val truncated = false
+            val recursionDesired = builder.recursionDesired
+            val recursionAvailable = false
+            val authenticData = false
+            val checkingDisabled = false
+            val questions: List<DnsQuestion>
+            if (builder.questions == null) {
+                questions = QUESTIONS_EMPTY
+            } else {
+                questions = builder.questions!!
             }
-            return ednsBuilder;
+
+            val additionalSection: List<DnsRecord>
+
+            if (builder.ednsBuilder == null) {
+                additionalSection = RECORDS_EMPTY
+            } else {
+                val dnsEdns = builder.ednsBuilder!!.build()
+                additionalSection = listOf(dnsEdns.asRecord())
+            }
+
+            val optRrPosition: Int = getOptRrPosition(additionalSection)
+
+            if (optRrPosition != -1) {
+                // Verify that there are no further OPT records but the one we already found.
+                for (i in optRrPosition + 1..<additionalSection.size) {
+                    require(additionalSection[i].type != DnsRecord.TYPE.OPT) { "There must be only one OPT pseudo RR in the additional section" }
+                }
+            }
+            return DnsMessage(
+                id, opcode, responseCode,
+                receiveTimestamp, optRrPosition, recursionAvailable,
+                qr, authoritativeAnswer, truncated,
+                recursionDesired, authenticData,
+                checkingDisabled, questions, RECORDS_EMPTY,
+                RECORDS_EMPTY, additionalSection
+            )
         }
 
-        public DnsMessage build() {
-            return DnsMessage.create(this);
+        private fun getOptRrPosition(additionalSection: List<DnsRecord>): Int {
+            var optRrPosition = -1
+            for (i in additionalSection.indices) {
+                val dnsRecord = additionalSection[i]
+                if (dnsRecord.type == DnsRecord.TYPE.OPT) {
+                    optRrPosition = i
+                    break
+                }
+            }
+            return optRrPosition
         }
 
+        fun builder(): Builder {
+            return Builder()
+        }
     }
-
 }
 

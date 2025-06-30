@@ -1,298 +1,300 @@
-package io.github.remmerw.frey;
+package io.github.remmerw.frey
 
+import java.io.DataInputStream
+import java.io.IOException
+import java.io.OutputStream
+import java.nio.charset.StandardCharsets
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
 
 /**
- * A DNS name, also called "domain name". A DNS name consists of multiple 'labels' (see {@link DnsLabel}) and is subject to certain restrictions (see
- * for example <a href="https://tools.ietf.org/html/rfc3696#section-2">RFC 3696 § 2.</a>).
- * <p>
- * Instances of this class can be created by using {@link #from(String)}.
- * </p>
- * <p>
+ * A DNS name, also called "domain name". A DNS name consists of multiple 'labels' (see [DnsLabel]) and is subject to certain restrictions (see
+ * for example [RFC 3696 § 2.](https://tools.ietf.org/html/rfc3696#section-2)).
+ *
+ *
+ * Instances of this class can be created by using [.from].
+ *
+ *
+ *
  * This class holds three representations of a DNS name: ACE, raw ACE and IDN. ACE (ASCII Compatible Encoding), which
- * can be accessed via {@link #ace}, represents mostly the data that got send over the wire. But since DNS names are
- * case insensitive, the ACE value is normalized to lower case. You can use {@link #getRawAce()} to get the raw ACE data
+ * can be accessed via [.ace], represents mostly the data that got send over the wire. But since DNS names are
+ * case insensitive, the ACE value is normalized to lower case. You can use [.getRawAce] to get the raw ACE data
  * that was received, which possibly includes upper case characters. The IDN (Internationalized Domain Name), that is
  * the DNS name as it should be shown to the user, can be retrieved using .
- * </p>
+ *
  * More information about Internationalized Domain Names can be found at:
- * <ul>
- * <li><a href="https://unicode.org/reports/tr46/">UTS #46 - Unicode IDNA Compatibility Processing</a>
- * <li><a href="https://tools.ietf.org/html/rfc8753">RFC 8753 - Internationalized Domain Names for Applications (IDNA) Review for New Unicode Versions</a>
- * </ul>
+ *
+ *  * [UTS #46 - Unicode IDNA Compatibility Processing](https://unicode.org/reports/tr46/)
+ *  * [RFC 8753 - Internationalized Domain Names for Applications (IDNA) Review for New Unicode Versions](https://tools.ietf.org/html/rfc8753)
+ *
  *
  * @author Florian Schmaus
- * @see <a href="https://tools.ietf.org/html/rfc3696">RFC 3696</a>
+ * @see [RFC 3696](https://tools.ietf.org/html/rfc3696)
+ *
  * @see DnsLabel
  */
-public record DnsName(String ace, String rawAce,
-                      List<DnsLabel> labels,
-                      List<DnsLabel> rawLabels) implements Comparable<DnsName> {
-
-    private static final List<DnsLabel> DNS_LABELS_EMPTY = new ArrayList<>();
-    private static final int MAX_LABELS = 128;
-    /**
-     * @see <a href="https://www.ietf.org/rfc/rfc3490.txt">RFC 3490 § 3.1 1.</a>
-     */
-    private static final String LABEL_SEP_REGEX = "[.。．｡]";
-    private static DnsName ROOT = null;
-
-
-    private static DnsName create(String name, boolean inAce) {
-        String rawAce;
-        if (name.isEmpty()) {
-            rawAce = root().rawAce;
-        } else {
-            final int nameLength = name.length();
-            final int nameLastPos = nameLength - 1;
-
-            // Strip potential trailing dot. N.B. that we require nameLength > 2, because we don't want to strip the one
-            // character string containing only a single dot to the empty string.
-            if (nameLength >= 2 && name.charAt(nameLastPos) == '.') {
-                name = name.subSequence(0, nameLastPos).toString();
-            }
-
-            if (inAce) {
-                // Name is already in ACE format.
-                rawAce = name;
-            } else {
-                rawAce = DnsUtility.toASCII(name);
-            }
-        }
-
-        String ace = rawAce.toLowerCase(Locale.US);
-
-        List<DnsLabel> rawLabels;
-        List<DnsLabel> labels;
-        if (isRootLabel(ace)) {
-            rawLabels = labels = DNS_LABELS_EMPTY;
-        } else {
-            labels = getLabels(ace);
-            rawLabels = getLabels(rawAce);
-        }
-
-        return new DnsName(ace, rawAce, labels, rawLabels);
-    }
-
-    private static DnsName create(List<DnsLabel> rawLabels) {
-
-
-        List<DnsLabel> labels = new ArrayList<>();
-
-        int size = 0;
-        for (DnsLabel rawLabel : rawLabels) {
-            size += rawLabel.length() + 1;
-            labels.add(rawLabel.asLowercaseVariant());
-        }
-
-        String rawAce = labelsToString(rawLabels, size);
-        String ace = labelsToString(labels, size);
-
-        return new DnsName(ace, rawAce, labels, rawLabels);
-    }
-
-    public static DnsName root() {
-        if (ROOT == null) {
-            ROOT = DnsName.create(".", true);
-        }
-        return ROOT;
-    }
-
-    private static String labelsToString(List<DnsLabel> labels, int stringLength) {
-        StringBuilder sb = new StringBuilder(stringLength);
-        for (int i = labels.size() - 1; i >= 0; i--) {
-            sb.append(labels.get(i)).append('.');
-        }
-        sb.setLength(sb.length() - 1);
-        return sb.toString();
-    }
-
-    private static List<DnsLabel> getLabels(String ace) {
-        String[] labels = ace.split(LABEL_SEP_REGEX, MAX_LABELS);
-
-        // Reverse the labels, so that 'foo, example, org' becomes 'org, example, foo'.
-        for (int i = 0; i < labels.length / 2; i++) {
-            String t = labels[i];
-            int j = labels.length - i - 1;
-            labels[i] = labels[j];
-            labels[j] = t;
-        }
-        return DnsLabel.from(labels);
-    }
-
-    public static DnsName from(CharSequence name) {
-        return from(name.toString());
-    }
-
-    private static DnsName from(String name) {
-        return DnsName.create(name, false);
-    }
-
-    /**
-     * Create a DNS name by "concatenating" the child under the parent name. The child can also be seen as the "left"
-     * part of the resulting DNS name and the parent is the "right" part.
-     * <p>
-     * For example using "i.am.the.child" as child and "of.this.parent.example" as parent, will result in a DNS name:
-     * "i.am.the.child.of.this.parent.example".
-     * </p>
-     *
-     * @param child  the child DNS name.
-     * @param parent the parent DNS name.
-     * @return the resulting of DNS name.
-     */
-    private static DnsName from(DnsName child, DnsName parent) {
-        List<DnsLabel> rawLabels = new ArrayList<>();
-        rawLabels.addAll(parent.rawLabels);
-        rawLabels.addAll(child.rawLabels);
-        return DnsName.create(rawLabels);
-    }
-
-    /**
-     * Parse a domain name starting at the current offset and moving the input
-     * stream pointer past this domain name (even if cross references occure).
-     *
-     * @param dis  The input stream.
-     * @param data The raw data (for cross references).
-     * @return The domain name string.
-     * @throws IOException Should never happen.
-     */
-    public static DnsName parse(DataInputStream dis, byte[] data)
-            throws IOException {
-        int c = dis.readUnsignedByte();
-        if ((c & 0xc0) == 0xc0) {
-            c = ((c & 0x3f) << 8) + dis.readUnsignedByte();
-            HashSet<Integer> jumps = new HashSet<>();
-            jumps.add(c);
-            return parse(data, c, jumps);
-        }
-        if (c == 0) {
-            return root();
-        }
-        byte[] b = new byte[c];
-        dis.readFully(b);
-
-        String childLabelString = new String(b, StandardCharsets.US_ASCII);
-        DnsName child = DnsName.create(childLabelString, true);
-
-        DnsName parent = parse(dis, data);
-        return DnsName.from(child, parent);
-    }
-
-    /**
-     * Parse a domain name starting at the given offset.
-     *
-     * @param data   The raw data.
-     * @param offset The offset.
-     * @param jumps  The list of jumps (by now).
-     * @return The parsed domain name.
-     * @throws IllegalStateException on cycles.
-     */
-    private static DnsName parse(byte[] data, int offset, HashSet<Integer> jumps)
-            throws IllegalStateException {
-        int c = data[offset] & 0xff;
-        if ((c & 0xc0) == 0xc0) {
-            c = ((c & 0x3f) << 8) + (data[offset + 1] & 0xff);
-            if (jumps.contains(c)) {
-                throw new IllegalStateException("Cyclic offsets detected.");
-            }
-            jumps.add(c);
-            return parse(data, c, jumps);
-        }
-        if (c == 0) {
-            return root();
-        }
-
-        String childLabelString = new String(data, offset + 1, c, StandardCharsets.US_ASCII);
-        DnsName child = DnsName.create(childLabelString, true);
-
-        DnsName parent = parse(data, offset + 1 + c, jumps);
-        return DnsName.from(child, parent);
-    }
-
-    private static boolean isRootLabel(String ace) {
-        return ace.isEmpty() || ace.equals(".");
-    }
-
-    public String ace() {
-        return ace;
-    }
-
-
-    public void writeToStream(OutputStream os) throws IOException {
-
-        for (int i = labels.size() - 1; i >= 0; i--) {
-            labels.get(i).writeToStream(os);
-        }
-        os.write(0);
-    }
-
-
+@JvmRecord
+data class DnsName(
+    @JvmField val ace: String,
     /**
      * Returns the raw ACE version of this DNS name. That is, the version as it was
      * received over the wire. Most notably, this version may include uppercase
      * letters.
-     * <p>
-     * <b>Please refer  for a discussion of the security
-     * implications when working with the ACE representation of a DNS name.</b>
+     *
+     *
+     * **Please refer  for a discussion of the security
+     * implications when working with the ACE representation of a DNS name.**
      *
      * @return the raw ACE version of this DNS name.
      */
-    public String getRawAce() {
-        return rawAce;
+    val rawAce: String,
+    val labels: MutableList<DnsLabel>,
+    val rawLabels: MutableList<DnsLabel>
+) : Comparable<DnsName> {
+    fun ace(): String? {
+        return ace
     }
 
-    public int size() {
-        if (isRootLabel(ace)) {
-            return 1;
+
+    @Throws(IOException::class)
+    fun writeToStream(os: OutputStream) {
+        for (i in labels!!.indices.reversed()) {
+            labels.get(i).writeToStream(os)
+        }
+        os.write(0)
+    }
+
+
+    fun size(): Int {
+        if (isRootLabel(ace!!)) {
+            return 1
         } else {
-            return ace.length() + 2;
+            return ace.length + 2
         }
-
     }
 
-    @Override
-    public String toString() {
-
-        if (labels.size() == 0) {
-            return ".";
+    override fun toString(): String {
+        if (labels!!.size == 0) {
+            return "."
         }
 
-        StringBuilder sb = new StringBuilder();
-        for (int i = labels.size() - 1; i >= 0; i--) {
+        val sb = StringBuilder()
+        for (i in labels.indices.reversed()) {
             // Note that it is important that we append the result of DnsLabel.toString() to
             // the StringBuilder. As only the result of toString() is the safe label
             // representation.
-            String safeLabelRepresentation = labels.get(i).toString();
-            sb.append(safeLabelRepresentation);
+            val safeLabelRepresentation = labels.get(i).toString()
+            sb.append(safeLabelRepresentation)
             if (i != 0) {
-                sb.append('.');
+                sb.append('.')
             }
         }
-        return sb.toString();
-
+        return sb.toString()
     }
 
-    @Override
-    public int compareTo(DnsName other) {
-        return ace.compareTo(other.ace);
+    override fun compareTo(other: DnsName): Int {
+        return ace!!.compareTo(other.ace!!)
     }
 
-    @Override
-    public boolean equals(Object other) {
-        if (other == null) return false;
-        if (other instanceof DnsName otherDnsName) {
-            return Arrays.equals(labels.stream().toArray(), otherDnsName.labels.stream().toArray()); // todo check
+    override fun equals(other: Any?): Boolean {
+        if (other == null) return false
+        if (other is DnsName) {
+            return labels!!.stream().toArray()
+                .contentEquals(other.labels!!.stream().toArray()) // todo check
         }
-        return false;
+        return false
     }
 
+    companion object {
+        private val DNS_LABELS_EMPTY: MutableList<DnsLabel> = ArrayList<DnsLabel>()
+        private const val MAX_LABELS = 128
+
+        /**
+         * @see [RFC 3490 § 3.1 1.](https://www.ietf.org/rfc/rfc3490.txt)
+         */
+        private const val LABEL_SEP_REGEX = "[.。．｡]"
+        private var ROOT: DnsName? = null
+
+
+        private fun create(name: String, inAce: Boolean): DnsName {
+            var name = name
+            val rawAce: String
+            if (name.isEmpty()) {
+                rawAce = root().rawAce
+            } else {
+                val nameLength = name.length
+                val nameLastPos = nameLength - 1
+
+                // Strip potential trailing dot. N.B. that we require nameLength > 2, because we don't want to strip the one
+                // character string containing only a single dot to the empty string.
+                if (nameLength >= 2 && name.get(nameLastPos) == '.') {
+                    name = name.subSequence(0, nameLastPos).toString()
+                }
+
+                if (inAce) {
+                    // Name is already in ACE format.
+                    rawAce = name
+                } else {
+                    rawAce = DnsUtility.toASCII(name)
+                }
+            }
+
+            val ace = rawAce.lowercase()
+
+            val rawLabels: MutableList<DnsLabel>?
+            val labels: MutableList<DnsLabel>?
+            if (isRootLabel(ace)) {
+                labels = DNS_LABELS_EMPTY
+                rawLabels = labels
+            } else {
+                labels = getLabels(ace)
+                rawLabels = getLabels(rawAce)
+            }
+
+            return DnsName(ace, rawAce, labels, rawLabels)
+        }
+
+        private fun create(rawLabels: MutableList<DnsLabel>): DnsName {
+            val labels: MutableList<DnsLabel> = ArrayList<DnsLabel>()
+
+            var size = 0
+            for (rawLabel in rawLabels) {
+                size += rawLabel.length() + 1
+                labels.add(rawLabel.asLowercaseVariant())
+            }
+
+            val rawAce: String = labelsToString(rawLabels, size)
+            val ace: String = labelsToString(labels, size)
+
+            return DnsName(ace, rawAce, labels, rawLabels)
+        }
+
+        @JvmStatic
+        fun root(): DnsName {
+            if (ROOT == null) {
+                ROOT = create(".", true)
+            }
+            return ROOT!!
+        }
+
+        private fun labelsToString(labels: MutableList<DnsLabel>, stringLength: Int): String {
+            val sb = StringBuilder(stringLength)
+            for (i in labels.indices.reversed()) {
+                sb.append(labels.get(i)).append('.')
+            }
+            sb.setLength(sb.length - 1)
+            return sb.toString()
+        }
+
+        private fun getLabels(ace: String): MutableList<DnsLabel> {
+            val labels: MutableList<String> = mutableListOf()
+
+            ace.split(
+                LABEL_SEP_REGEX.toRegex(),
+                MAX_LABELS.coerceAtLeast(0)
+            ).forEach { text -> labels.add(text) }
+
+            // Reverse the labels, so that 'foo, example, org' becomes 'org, example, foo'.
+            for (i in 0..<labels.size / 2) {
+                val t = labels[i]
+                val j = labels.size - i - 1
+                labels[i] = labels[j]
+                labels[j] = t
+            }
+            return DnsLabel.from(labels)
+        }
+
+
+        fun from(name: CharSequence): DnsName {
+            return Companion.from(name.toString())
+        }
+
+        private fun from(name: String): DnsName {
+            return create(name, false)
+        }
+
+        /**
+         * Create a DNS name by "concatenating" the child under the parent name. The child can also be seen as the "left"
+         * part of the resulting DNS name and the parent is the "right" part.
+         *
+         *
+         * For example using "i.am.the.child" as child and "of.this.parent.example" as parent, will result in a DNS name:
+         * "i.am.the.child.of.this.parent.example".
+         *
+         *
+         * @param child  the child DNS name.
+         * @param parent the parent DNS name.
+         * @return the resulting of DNS name.
+         */
+        private fun from(child: DnsName, parent: DnsName): DnsName {
+            val rawLabels: MutableList<DnsLabel> = ArrayList<DnsLabel>()
+            rawLabels.addAll(parent.rawLabels!!)
+            rawLabels.addAll(child.rawLabels!!)
+            return create(rawLabels)
+        }
+
+        /**
+         * Parse a domain name starting at the current offset and moving the input
+         * stream pointer past this domain name (even if cross references occure).
+         *
+         * @param dis  The input stream.
+         * @param data The raw data (for cross references).
+         * @return The domain name string.
+         * @throws IOException Should never happen.
+         */
+        @JvmStatic
+        @Throws(IOException::class)
+        fun parse(dis: DataInputStream, data: ByteArray): DnsName {
+            var c = dis.readUnsignedByte()
+            if ((c and 0xc0) == 0xc0) {
+                c = ((c and 0x3f) shl 8) + dis.readUnsignedByte()
+                val jumps = HashSet<Int?>()
+                jumps.add(c)
+                return parse(data, c, jumps)
+            }
+            if (c == 0) {
+                return root()
+            }
+            val b = ByteArray(c)
+            dis.readFully(b)
+
+            val childLabelString = String(b, StandardCharsets.US_ASCII)
+            val child: DnsName = create(childLabelString, true)
+
+            val parent: DnsName = parse(dis, data)
+            return from(child, parent)
+        }
+
+        /**
+         * Parse a domain name starting at the given offset.
+         *
+         * @param data   The raw data.
+         * @param offset The offset.
+         * @param jumps  The list of jumps (by now).
+         * @return The parsed domain name.
+         * @throws IllegalStateException on cycles.
+         */
+        @Throws(IllegalStateException::class)
+        private fun parse(data: ByteArray, offset: Int, jumps: HashSet<Int?>): DnsName {
+            var c = data[offset].toInt() and 0xff
+            if ((c and 0xc0) == 0xc0) {
+                c = ((c and 0x3f) shl 8) + (data[offset + 1].toInt() and 0xff)
+                check(!jumps.contains(c)) { "Cyclic offsets detected." }
+                jumps.add(c)
+                return parse(data, c, jumps)
+            }
+            if (c == 0) {
+                return root()
+            }
+
+            val childLabelString = String(data, offset + 1, c, StandardCharsets.US_ASCII)
+            val child: DnsName = create(childLabelString, true)
+
+            val parent: DnsName = parse(data, offset + 1 + c, jumps)
+            return from(child, parent)
+        }
+
+        private fun isRootLabel(ace: String): Boolean {
+            return ace.isEmpty() || ace == "."
+        }
+    }
 }

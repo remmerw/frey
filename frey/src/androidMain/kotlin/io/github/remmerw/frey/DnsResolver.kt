@@ -1,100 +1,73 @@
-package io.github.remmerw.frey;
+package io.github.remmerw.frey
+
+import io.github.remmerw.frey.DnsData.TXT
+import java.net.ConnectException
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.util.concurrent.CopyOnWriteArraySet
+import java.util.function.Supplier
 
 
-import java.net.ConnectException;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+class DnsResolver {
+    private val dnsClient = DnsClient(Supplier {
+        val list = ArrayList<InetAddress?>()
+        list.addAll(STATIC_IPV4_DNS_SERVERS)
+        list.addAll(STATIC_IPV6_DNS_SERVERS)
+        list
+    }, DnsCache())
 
-
-public final class DnsResolver {
-    public static final Set<Inet4Address> STATIC_IPV4_DNS_SERVERS = new CopyOnWriteArraySet<>();
-    public static final Set<Inet6Address> STATIC_IPV6_DNS_SERVERS = new CopyOnWriteArraySet<>();
-    private static final String DNS_ADDR = "dnsaddr=";
-    private static final String DNS_LINK = "dnslink=";
-
-    static {
+    private fun retrieveTxtRecords(host: String): MutableSet<String> {
+        val txtRecords: MutableSet<String> = HashSet<String>()
         try {
-            STATIC_IPV4_DNS_SERVERS.add(DnsUtility.ipv4From("8.8.8.8"));
-            // CLOUDFLARE_DNS_SERVER_IP4 = "1.1.1.1";
-        } catch (IllegalArgumentException e) {
-            // todo LogUtils.error(TAG, "Could not add static IPv4 DNS Server " + e.getMessage());
-        }
-
-        try {
-            STATIC_IPV6_DNS_SERVERS.add(DnsUtility.ipv6From("[2001:4860:4860::8888]"));
-        } catch (IllegalArgumentException e) {
-            // todo LogUtils.error(TAG, "Could not add static IPv6 DNS Server " + e.getMessage());
-        }
-    }
-
-    private final DnsClient dnsClient = new DnsClient(() -> {
-        ArrayList<InetAddress> list = new ArrayList<>();
-        list.addAll(DnsResolver.STATIC_IPV4_DNS_SERVERS);
-        list.addAll(DnsResolver.STATIC_IPV6_DNS_SERVERS);
-        return list;
-    }, new DnsCache());
-
-    public DnsResolver() {
-    }
-
-    private Set<String> retrieveTxtRecords(String host) {
-        Set<String> txtRecords = new HashSet<>();
-        try {
-            DnsQueryResult result = dnsClient.query(host, DnsRecord.TYPE.TXT);
-            DnsMessage response = result.getResponse();
-            for (DnsRecord dnsRecord : response.answerSection()) {
-                DnsData payload = dnsRecord.getPayload();
-                if (payload instanceof DnsData.TXT text) {
-                    txtRecords.add(text.getText());
+            val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
+            val response = result.response
+            for (dnsRecord in response.answerSection) {
+                val payload = dnsRecord.payload
+                if (payload is TXT) {
+                    txtRecords.add(payload.text)
                 } else {
-                    // todo LogUtils.warning(TAG, payload.toString());
+                    println(payload.toString())
                 }
             }
-        } catch (ConnectException ignoreConnectException) {
+        } catch (ignoreConnectException: ConnectException) {
             // nothing to do here
-        } catch (Throwable throwable) {
-            // todo   LogUtils.error(TAG, host + " " + throwable.getClass().getName());
+        } catch (throwable: Throwable) {
+            throwable.printStackTrace()
         }
-        return txtRecords;
+        return txtRecords
     }
 
-    public String resolveDnsLink(String host) {
-
-        Set<String> txtRecords = retrieveTxtRecords("_dnslink.".concat(host));
-        for (String txtRecord : txtRecords) {
+    fun resolveDnsLink(host: String): String {
+        val txtRecords = retrieveTxtRecords("_dnslink.$host")
+        for (txtRecord in txtRecords) {
             if (txtRecord.startsWith(DNS_LINK)) {
-                return txtRecord.replaceFirst(DNS_LINK, "");
+                return txtRecord.replaceFirst(DNS_LINK, "")
             }
         }
-        return "";
+        return ""
     }
 
-    public Set<String> resolveDnsAddr(String host) {
-        return resolveDnsAddrHost(host, new HashSet<>());
-
+    fun resolveDnsAddr(host: String): MutableSet<String> {
+        return resolveDnsAddrHost(host, mutableSetOf())
     }
 
 
-    private Set<String> resolveDnsAddrHost(String host, Set<String> hosts) {
-        Set<String> multiAddresses = new HashSet<>();
+    private fun resolveDnsAddrHost(host: String, hosts: MutableSet<String>): MutableSet<String> {
+        val multiAddresses: MutableSet<String> = mutableSetOf()
         // recursion protection
         if (hosts.contains(host)) {
-            return multiAddresses;
+            return multiAddresses
         }
-        hosts.add(host);
+        hosts.add(host)
 
-        Set<String> txtRecords = retrieveTxtRecords("_dnsaddr." + host);
+        val txtRecords = retrieveTxtRecords("_dnsaddr.$host")
 
-        for (String txtRecord : txtRecords) {
+        for (txtRecord in txtRecords) {
             try {
                 if (txtRecord.startsWith(DNS_ADDR)) {
-                    String testRecordReduced = txtRecord.replaceFirst(DNS_ADDR, "");
-                    multiAddresses.add(testRecordReduced);
+                    val testRecordReduced: String = txtRecord.replaceFirst(DNS_ADDR, "")
+                    multiAddresses.add(testRecordReduced)
                     /* TODO
                     Peeraddr multiaddr = Peeraddr.create(testRecordReduced);
                     if (multiaddr.isDnsaddr()) {
@@ -106,13 +79,38 @@ public final class DnsResolver {
 
                     }*/
                 }
-            } catch (Throwable throwable) {
+            } catch (throwable: Throwable) {
                 // todo (TAG, "Not supported " + txtRecord);
             }
         }
-        return multiAddresses;
+        return multiAddresses
     }
 
 
+    companion object {
+        val STATIC_IPV4_DNS_SERVERS: MutableSet<Inet4Address?> =
+            CopyOnWriteArraySet<Inet4Address?>()
+        val STATIC_IPV6_DNS_SERVERS: MutableSet<Inet6Address?> =
+            CopyOnWriteArraySet<Inet6Address?>()
+        private const val DNS_ADDR = "dnsaddr="
+        private const val DNS_LINK = "dnslink="
+
+        init {
+            try {
+                STATIC_IPV4_DNS_SERVERS.add(DnsUtility.Companion.ipv4From("8.8.8.8"))
+                // CLOUDFLARE_DNS_SERVER_IP4 = "1.1.1.1";
+            } catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+                // todo LogUtils.error(TAG, "Could not add static IPv4 DNS Server " + e.getMessage());
+            }
+
+            try {
+                STATIC_IPV6_DNS_SERVERS.add(DnsUtility.Companion.ipv6From("[2001:4860:4860::8888]"))
+            } catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+                // todo LogUtils.error(TAG, "Could not add static IPv6 DNS Server " + e.getMessage());
+            }
+        }
+    }
 }
 
