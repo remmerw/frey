@@ -11,7 +11,7 @@ class DnsCache {
     /**
      * The backend cache.
      */
-    private val backend: LinkedHashMap<DnsMessage?, DnsQueryResult?>
+    private val backend: LinkedHashMap<DnsMessage, DnsQueryResult>
     private val reentrantLock = ReentrantLock()
 
     /**
@@ -35,7 +35,7 @@ class DnsCache {
     }
 
 
-    private fun putNormalized(q: DnsMessage?, result: DnsQueryResult) {
+    private fun putNormalized(q: DnsMessage, result: DnsQueryResult) {
         if (result.response.receiveTimestamp <= 0L) {
             return
         }
@@ -48,10 +48,10 @@ class DnsCache {
     }
 
 
-    private fun getNormalized(q: DnsMessage?): DnsQueryResult? {
+    private fun getNormalized(q: DnsMessage): DnsQueryResult? {
         reentrantLock.lock()
         try {
-            val result = backend.get(q)
+            val result = backend[q]
 
             if (result == null) {
                 missCount++
@@ -108,18 +108,15 @@ class DnsCache {
     }
 
     private class DnsMessageDnsQueryResultLinkedHashMap :
-        LinkedHashMap<DnsMessage?, DnsQueryResult?>(
+        LinkedHashMap<DnsMessage, DnsQueryResult>(
             min(CAPACITY + (CAPACITY + 3) / 4 + 2, 11), 0.75f, true
         ) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<DnsMessage?, DnsQueryResult?>?): Boolean {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<DnsMessage, DnsQueryResult>): Boolean {
             return size > CAPACITY
         }
     }
 
     companion object {
-        /**
-         * The internal capacity of the backend cache.
-         */
         private const val CAPACITY = 128
     }
 }
