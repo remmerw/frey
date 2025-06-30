@@ -19,7 +19,7 @@ import kotlinx.io.Buffer
  * @author Florian Schmaus
  * @see [RFC 5890 § 2.2. DNS-Related Terminology](https://tools.ietf.org/html/rfc5890.section-2.2)
  */
-@JvmRecord
+
 data class DnsLabel(val label: String) : Comparable<DnsLabel> {
     fun length(): Int {
         return toSafeString().length
@@ -115,7 +115,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         }
 
         fun fromLdhLabel(label: String): DnsLabel {
-            assert(isLdhLabel(label))
+            require(isLdhLabel(label))
 
             if (isReservedLdhLabel(label)) {
                 // Label starts with '??--'. Now let us see if it is a XN-Label, starting with 'xn--', but be aware that the
@@ -130,7 +130,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
         }
 
         fun fromXnLabel(label: String): DnsLabel {
-            assert(isIdnAcePrefixed(label))
+            require(isIdnAcePrefixed(label))
             return create(label)
         }
 
@@ -210,7 +210,7 @@ data class DnsLabel(val label: String) : Comparable<DnsLabel> {
                         sb.append("〚") // U+301A
                         // Transform the char to hex notation. Note that we have ensure that c is <= 255
                         // here, hence only two hexadecimal places are ok.
-                        val hex = String.format("%02X", c.code)
+                        val hex = c.code.toHexString()
                         sb.append(hex)
                         sb.append("〛") // U+301B
                     }

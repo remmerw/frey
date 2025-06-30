@@ -54,7 +54,7 @@ interface DnsData {
                         variablePart.add(option)
                         payloadLeft -= 2 + 2 + optionLength
                         // Assert that payloadLeft never becomes negative
-                        assert(payloadLeft >= 0)
+                        require(payloadLeft >= 0)
                     }
                 }
 

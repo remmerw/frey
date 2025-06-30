@@ -11,8 +11,8 @@ import io.ktor.utils.io.readBuffer
 import io.ktor.utils.io.readShort
 import io.ktor.utils.io.writeBuffer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.io.Buffer
-import java.net.IDN
 
 interface DnsUtility {
     companion object {
@@ -89,7 +89,7 @@ interface DnsUtility {
                 return root().ace
             }
 
-            return IDN.toASCII(input)
+            return input // todo IDN.toASCII(input) [not yet exists in kotlin]
         }
 
         const val UDP_PAYLOAD_SIZE: Int = 1024

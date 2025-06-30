@@ -6,7 +6,7 @@ import kotlinx.io.readByteArray
 /**
  * A DNS question (request).
  */
-@JvmRecord
+
 data class DnsQuestion(
     val name: DnsName?, val type: DnsRecord.TYPE?, val clazz: DnsRecord.CLASS?,
     val unicastQuery: Boolean

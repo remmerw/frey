@@ -9,7 +9,7 @@ import kotlinx.io.Buffer
  *
  * @see [RFC 6891 - Extension Mechanisms for DNS
 ](https://tools.ietf.org/html/rfc6891) */
-@JvmRecord
+
 data class DnsEdns(
     val udpPayloadSize: Int, val extendedRcode: Int, val version: Int,
     val flags: Int, val variablePart: MutableList<Option>
@@ -123,7 +123,6 @@ data class DnsEdns(
             return DnsEdns(builder.udpPayloadSize, 0, 0, flags, VARIABLE_PART)
         }
 
-        @JvmStatic
         fun builder(): EdnsBuilder {
             return EdnsBuilder()
         }

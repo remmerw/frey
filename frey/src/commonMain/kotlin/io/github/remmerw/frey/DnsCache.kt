@@ -3,6 +3,9 @@ package io.github.remmerw.frey
 import io.ktor.util.collections.ConcurrentMap
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
+import kotlin.time.DurationUnit
+import kotlin.time.TimeSource
+import kotlin.time.toDuration
 
 /**
  * Cache for DNS Entries. Implementations must be thread safe.
@@ -31,9 +34,6 @@ class DnsCache {
 
 
     private fun putNormalized(q: DnsMessage, result: DnsQueryResult) {
-        if (result.response.receiveTimestamp <= 0L) {
-            return
-        }
         reentrantLock.withLock {
             backend.put(q, DnsQueryResult(result.response))
         }
@@ -56,8 +56,9 @@ class DnsCache {
             // shortest TTL to be the effective one.
             val answersMinTtl = message.answersMinTtl
 
-            val expiryDate = message.receiveTimestamp + (answersMinTtl * 1000)
-            val now = System.currentTimeMillis()
+            val expiryDate =
+                message.receiveTimestamp.plus(answersMinTtl.toDuration(DurationUnit.SECONDS))
+            val now = TimeSource.Monotonic.markNow()
             if (expiryDate < now) {
                 missCount++
                 expireCount++

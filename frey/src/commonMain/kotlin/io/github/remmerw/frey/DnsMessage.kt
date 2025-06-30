@@ -4,6 +4,8 @@ import kotlinx.io.Buffer
 import kotlinx.io.Source
 import kotlinx.io.readByteArray
 import kotlin.math.min
+import kotlin.time.TimeSource
+import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 
 /**
  * A DNS message as defined by RFC 1035. The message consists of a header and
@@ -14,7 +16,7 @@ import kotlin.math.min
  */
 data class DnsMessage(
     val id: UShort, val opcode: OPCODE?, val responseCode: ResponseCode?,
-    val receiveTimestamp: Long, val optRrPosition: Int, val recursionAvailable: Boolean,
+    val receiveTimestamp: ValueTimeMark, val optRrPosition: Int, val recursionAvailable: Boolean,
     val qr: Boolean, val authoritativeAnswer: Boolean, val truncated: Boolean,
     val recursionDesired: Boolean, val authenticData: Boolean,
     val checkingDisabled: Boolean, val questions: List<DnsQuestion>?,
@@ -347,7 +349,7 @@ data class DnsMessage(
             val authenticData = ((header shr 5) and 1) == 1
             val checkingDisabled = ((header shr 4) and 1) == 1
             val responseCode = ResponseCode.Companion.getResponseCode(header and 0xf)
-            val receiveTimestamp = System.currentTimeMillis()
+            val receiveTimestamp = TimeSource.Monotonic.markNow()
             val questionCount = dis.readShort().toInt()
             val answerCount = dis.readShort().toInt()
             val nameserverCount = dis.readShort().toInt()
@@ -401,7 +403,7 @@ data class DnsMessage(
             val id = builder.id
             val opcode = builder.opcode
             val responseCode = builder.responseCode
-            val receiveTimestamp: Long = -1
+            val receiveTimestamp = TimeSource.Monotonic.markNow()
             val qr = false
             val authoritativeAnswer = false
             val truncated = false

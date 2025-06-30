@@ -26,10 +26,11 @@ kotlin {
     }
 
 
-    //jvm()
-    //iosX64()
-    //iosArm64()
-    //iosSimulatorArm64()
+    jvm()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
     // linuxArm64()
     // linuxX64()
     // linuxArm64()
@@ -52,6 +53,7 @@ kotlin {
                 implementation(libs.kotlin.test)
             }
         }
+
         androidInstrumentedTest.dependencies {
             implementation(libs.kotlin.test)
             implementation("androidx.test:runner:1.6.2")
