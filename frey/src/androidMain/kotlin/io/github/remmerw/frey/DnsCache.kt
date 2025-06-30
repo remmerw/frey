@@ -1,9 +1,8 @@
 package io.github.remmerw.frey
 
+import io.ktor.util.collections.ConcurrentMap
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
-import kotlin.math.min
-
 
 /**
  * Cache for DNS Entries. Implementations must be thread safe.
@@ -12,8 +11,7 @@ class DnsCache {
     /**
      * The backend cache.
      */
-    private val backend: LinkedHashMap<DnsMessage, DnsQueryResult> =
-        DnsMessageDnsQueryResultLinkedHashMap()
+    private val backend: ConcurrentMap<DnsMessage, DnsQueryResult> = ConcurrentMap()
     private val reentrantLock = reentrantLock()
 
     /**
@@ -72,12 +70,6 @@ class DnsCache {
         }
     }
 
-
-    override fun toString(): String {
-        return "DnsCache{usage=" + backend.size + "/" + CAPACITY + ", hits=" + hitCount +
-                ", misses=" + missCount + ", expires=" + expireCount + "}"
-    }
-
     /**
      * Add an an dns answer/response for a given dns question. Implementations
      * should honor the ttl / receive timestamp.
@@ -99,16 +91,4 @@ class DnsCache {
         return getNormalized(query.asNormalizedVersion())
     }
 
-    private class DnsMessageDnsQueryResultLinkedHashMap :
-        LinkedHashMap<DnsMessage, DnsQueryResult>(
-            min(CAPACITY + (CAPACITY + 3) / 4 + 2, 11), 0.75f, true
-        ) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<DnsMessage, DnsQueryResult>): Boolean {
-            return size > CAPACITY
-        }
-    }
-
-    companion object {
-        private const val CAPACITY = 128
-    }
 }

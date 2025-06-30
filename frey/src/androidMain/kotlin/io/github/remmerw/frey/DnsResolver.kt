@@ -12,7 +12,40 @@ class DnsResolver {
         list
     }, DnsCache())
 
-    private suspend fun retrieveTxtRecords(host: String): MutableSet<String> {
+
+    // TODO not yet working
+    suspend fun retrieveARecord(host: String): List<String> {
+        val response: MutableList<String> = mutableListOf()
+        val result = dnsClient.query(host, DnsRecord.TYPE.A)
+        for (dnsRecord in result.response.answerSection) {
+            val payload = dnsRecord.payload
+            if (payload is DnsData.UNKNOWN) {
+                response.add(payload.bytes().decodeToString())
+            } else {
+                println(payload.toString()) // todo
+            }
+        }
+        return response
+    }
+
+
+    // TODO not yet working
+    suspend fun retrieveAAAARecord(host: String): List<String> {
+        val response: MutableList<String> = mutableListOf()
+        val result = dnsClient.query(host, DnsRecord.TYPE.AAAA)
+
+        for (dnsRecord in result.response.answerSection) {
+            val payload = dnsRecord.payload
+            if (payload is DnsData.UNKNOWN) {
+                response.add(payload.bytes().decodeToString())
+            } else {
+                println(payload.toString()) // todo
+            }
+        }
+        return response
+    }
+
+    suspend fun retrieveTxtRecords(host: String): MutableSet<String> {
         val txtRecords: MutableSet<String> = mutableSetOf()
         try {
             val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
@@ -22,7 +55,7 @@ class DnsResolver {
                 if (payload is TXT) {
                     txtRecords.add(payload.text)
                 } else {
-                    println(payload.toString())
+                    println(payload.toString()) // todo
                 }
             }
         } catch (_: Exception) {

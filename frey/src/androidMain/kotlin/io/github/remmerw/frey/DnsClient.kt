@@ -57,7 +57,7 @@ class DnsClient internal constructor(
     private fun buildMessage(question: DnsQuestion): DnsMessage.Builder {
         val message: DnsMessage.Builder = DnsMessage.Companion.builder()
         message.setQuestion(question)
-        message.setId(random.nextInt())
+        message.setId(random.nextInt().toUShort())
         newQuestion(message)
         return message
     }

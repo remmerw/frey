@@ -12,7 +12,7 @@ import kotlinx.io.readByteArray
  * @see [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt)
  */
 data class DnsMessage(
-    val id: Int, val opcode: OPCODE?, val responseCode: ResponseCode?,
+    val id: UShort, val opcode: OPCODE?, val responseCode: ResponseCode?,
     val receiveTimestamp: Long, val optRrPosition: Int, val recursionAvailable: Boolean,
     val qr: Boolean, val authoritativeAnswer: Boolean, val truncated: Boolean,
     val recursionDesired: Boolean, val authenticData: Boolean,
@@ -266,7 +266,7 @@ data class DnsMessage(
     class Builder() {
         val opcode = OPCODE.QUERY
         val responseCode = ResponseCode.NO_ERROR
-        var id = 0
+        var id: UShort = 0.toUShort()
         var recursionDesired = false
 
         var questions: List<DnsQuestion>? = null
@@ -293,8 +293,8 @@ data class DnsMessage(
          * @param id The new DNS message id.
          * @return a reference to this builder.
          */
-        fun setId(id: Int): Builder {
-            this.id = id and 0xffff
+        fun setId(id: UShort): Builder {
+            this.id = id
             return this
         }
 
@@ -335,7 +335,7 @@ data class DnsMessage(
             val data = source.readByteArray()
             val dis = Buffer()
             dis.write(data)
-            val id = dis.readShort().toInt()
+            val id = dis.readShort().toUShort()
             val header = dis.readShort().toInt()
             val qr = ((header shr 15) and 1) == 1
             val opcode = OPCODE.Companion.getOpcode((header shr 11) and 0xf)
@@ -387,7 +387,7 @@ data class DnsMessage(
          */
         private fun normalized(message: DnsMessage): DnsMessage {
             return DnsMessage(
-                0, message.opcode, message.responseCode,
+                0.toUShort(), message.opcode, message.responseCode,
                 message.receiveTimestamp, message.optRrPosition, message.recursionAvailable,
                 message.qr, message.authoritativeAnswer, message.truncated,
                 message.recursionDesired, message.authenticData,
