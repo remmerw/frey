@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import java.io.DataInputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.nio.charset.StandardCharsets
 
 
 /**
@@ -257,7 +256,7 @@ data class DnsName(
             val b = ByteArray(c)
             dis.readFully(b)
 
-            val childLabelString = String(b, StandardCharsets.US_ASCII)
+            val childLabelString = b.decodeToString()
             val child: DnsName = create(childLabelString, true)
 
             val parent: DnsName = parse(dis, data)
@@ -286,7 +285,7 @@ data class DnsName(
                 return root()
             }
 
-            val childLabelString = String(data, offset + 1, c, StandardCharsets.US_ASCII)
+            val childLabelString = String(data, offset + 1, c)
             val child: DnsName = create(childLabelString, true)
 
             val parent: DnsName = parse(data, offset + 1 + c, jumps)
