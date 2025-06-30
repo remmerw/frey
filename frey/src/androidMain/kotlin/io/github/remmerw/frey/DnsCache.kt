@@ -7,7 +7,7 @@ import kotlin.math.min
 /**
  * Cache for DNS Entries. Implementations must be thread safe.
  */
-internal class DnsCache {
+class DnsCache {
     /**
      * The backend cache.
      */

@@ -4,12 +4,10 @@ import io.github.remmerw.frey.DnsMessage.RESPONSE_CODE
 import io.github.remmerw.frey.DnsName.Companion.from
 import java.io.IOException
 import java.net.InetAddress
-import java.security.NoSuchAlgorithmException
-import java.security.SecureRandom
 import java.util.Collections
-import java.util.Random
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Supplier
+import kotlin.random.Random
 
 /**
  * A minimal DNS client for TXT lookups, with IDN support.
@@ -17,37 +15,18 @@ import java.util.function.Supplier
  */
 class DnsClient internal constructor(
     private val settingSupplier: Supplier<MutableList<InetAddress?>>,
-    dnsCache: DnsCache
+    val dnsCache: DnsCache
 ) {
     /**
      * The internal random class for sequence generation.
      */
-    private val random: Random
+    private val random: Random = Random
 
-    /**
-     * The internal DNS cache.
-     */
-    private val dnsCache: DnsCache
 
     private val nonRaServers: MutableSet<InetAddress?> = Collections.newSetFromMap<InetAddress?>(
         ConcurrentHashMap<InetAddress?, Boolean?>(4)
     )
 
-    /**
-     * Create a new DNS client with the given DNS cache.
-     *
-     * @param dnsCache The backend DNS cache.
-     */
-    init {
-        var random: Random
-        try {
-            random = SecureRandom.getInstance("SHA1PRNG")
-        } catch (e1: NoSuchAlgorithmException) {
-            random = SecureRandom()
-        }
-        this.random = random
-        this.dnsCache = dnsCache
-    }
 
     fun onResponse(requestMessage: DnsMessage, responseMessage: DnsQueryResult) {
         val q = requestMessage.question
