@@ -82,7 +82,7 @@ class DnsCache {
 
 
     override fun toString(): String {
-        return "DnsCache{usage=" + backend.size + "/" + capacity + ", hits=" + hitCount +
+        return "DnsCache{usage=" + backend.size + "/" + CAPACITY + ", hits=" + hitCount +
                 ", misses=" + missCount + ", expires=" + expireCount + "}"
     }
 
@@ -109,10 +109,10 @@ class DnsCache {
 
     private class DnsMessageDnsQueryResultLinkedHashMap :
         LinkedHashMap<DnsMessage?, DnsQueryResult?>(
-            min(capacity + (capacity + 3) / 4 + 2, 11), 0.75f, true
+            min(CAPACITY + (CAPACITY + 3) / 4 + 2, 11), 0.75f, true
         ) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<DnsMessage?, DnsQueryResult?>?): Boolean {
-            return size > capacity
+            return size > CAPACITY
         }
     }
 
@@ -120,6 +120,6 @@ class DnsCache {
         /**
          * The internal capacity of the backend cache.
          */
-        private const val capacity = 128
+        private const val CAPACITY = 128
     }
 }

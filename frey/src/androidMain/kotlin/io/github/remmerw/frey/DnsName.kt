@@ -30,9 +30,7 @@ import java.io.OutputStream
  *
  * @see DnsLabel
  */
-@JvmRecord
-data class DnsName(
-    @JvmField val ace: String,
+data class DnsName(val ace: String,
     /**
      * Returns the raw ACE version of this DNS name. That is, the version as it was
      * received over the wire. Most notably, this version may include uppercase
@@ -48,14 +46,11 @@ data class DnsName(
     val labels: MutableList<DnsLabel>,
     val rawLabels: MutableList<DnsLabel>
 ) : Comparable<DnsName> {
-    fun ace(): String? {
-        return ace
-    }
 
 
     fun writeToStream(os: OutputStream) {
         for (i in labels.indices.reversed()) {
-            labels.get(i).writeToStream(os)
+            labels[i].writeToStream(os)
         }
         os.write(0)
     }
@@ -95,8 +90,8 @@ data class DnsName(
     override fun equals(other: Any?): Boolean {
         if (other == null) return false
         if (other is DnsName) {
-            return labels!!.stream().toArray()
-                .contentEquals(other.labels!!.stream().toArray()) // todo check
+            return labels.stream().toArray()
+                .contentEquals(other.labels.stream().toArray()) // todo check
         }
         return false
     }
@@ -223,9 +218,9 @@ data class DnsName(
          * @return the resulting of DNS name.
          */
         private fun from(child: DnsName, parent: DnsName): DnsName {
-            val rawLabels: MutableList<DnsLabel> = ArrayList<DnsLabel>()
-            rawLabels.addAll(parent.rawLabels!!)
-            rawLabels.addAll(child.rawLabels!!)
+            val rawLabels: MutableList<DnsLabel> = mutableListOf()
+            rawLabels.addAll(parent.rawLabels)
+            rawLabels.addAll(child.rawLabels)
             return create(rawLabels)
         }
 
