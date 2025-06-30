@@ -20,7 +20,7 @@ import java.net.SocketException
 interface DnsUtility {
     companion object {
 
-        fun query(message: DnsMessage, address: InetAddress?): DnsQueryResult {
+        fun query(message: DnsMessage, address: InetAddress): DnsQueryResult {
             try {
                 return DnsQueryResult(queryUdp(message, address))
             } catch (_: Exception) {
@@ -30,8 +30,13 @@ interface DnsUtility {
             return DnsQueryResult(queryTcp(message, address))
         }
 
-        private fun queryUdp(query: DnsMessage, address: InetAddress?): DnsMessage {
-            var packet = query.asDatagram(address)
+        private fun asDatagram(query: DnsMessage, address: InetAddress): DatagramPacket {
+            val bytes = query.serialize()
+            return DatagramPacket(bytes, bytes.size, address, 53)
+        }
+
+        private fun queryUdp(query: DnsMessage, address: InetAddress): DnsMessage {
+            var packet = asDatagram(query, address)
             val buffer = ByteArray(UDP_PAYLOAD_SIZE)
             createDatagramSocket().use { socket ->
                 socket.setSoTimeout(DNS_TIMEOUT)
@@ -44,7 +49,7 @@ interface DnsUtility {
             }
         }
 
-        private fun queryTcp(message: DnsMessage, address: InetAddress?): DnsMessage {
+        private fun queryTcp(message: DnsMessage, address: InetAddress): DnsMessage {
             createSocket().use { socket ->
                 val socketAddress: SocketAddress = InetSocketAddress(address, 53)
                 socket.connect(socketAddress, DNS_TIMEOUT)

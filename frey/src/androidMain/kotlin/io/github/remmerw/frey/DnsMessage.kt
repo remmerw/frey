@@ -4,8 +4,6 @@ import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
-import java.net.DatagramPacket
-import java.net.InetAddress
 
 /**
  * A DNS message as defined by RFC 1035. The message consists of a header and
@@ -14,7 +12,6 @@ import java.net.InetAddress
  *
  * @see [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt)
  */
-@JvmRecord
 data class DnsMessage(
     val id: Int, val opcode: OPCODE?, val responseCode: ResponseCode?,
     val receiveTimestamp: Long, val optRrPosition: Int, val recursionAvailable: Boolean,
@@ -24,12 +21,6 @@ data class DnsMessage(
     val answerSection: List<DnsRecord>,
     val authoritySection: List<DnsRecord>?, val additionalSection: List<DnsRecord>?
 ) {
-    fun asDatagram(address: InetAddress?): DatagramPacket {
-        val bytes = serialize()
-        return DatagramPacket(bytes, bytes.size, address, 53)
-    }
-
-
     fun writeTo(buffer: Buffer) {
         val bytes = serialize()
         buffer.writeShort(bytes.size.toShort())
@@ -37,7 +28,7 @@ data class DnsMessage(
     }
 
 
-    private fun serialize(): ByteArray {
+    fun serialize(): ByteArray {
         val dos = Buffer()
         val header = calculateHeaderBitmap()
 

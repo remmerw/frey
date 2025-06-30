@@ -11,7 +11,7 @@ import kotlin.random.Random
  * This circumvents the missing javax.naming package on android.
  */
 class DnsClient internal constructor(
-    private val settingSupplier: () -> (MutableList<InetAddress>),
+    private val addresses: () -> (List<InetAddress>),
     val dnsCache: DnsCache
 ) {
     /**
@@ -63,14 +63,14 @@ class DnsClient internal constructor(
     }
 
 
-    private fun query(query: DnsMessage, address: InetAddress?): DnsQueryResult {
+    private fun query(query: DnsMessage, address: InetAddress): DnsQueryResult {
         val responseMessage: DnsQueryResult = DnsUtility.Companion.query(query, address)
         onResponse(query, responseMessage)
         return responseMessage
     }
 
-    private val serverAddresses: MutableList<InetAddress>
-        get() = settingSupplier.invoke()
+    private val serverAddresses: List<InetAddress>
+        get() = addresses.invoke()
 
 
     private fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
@@ -85,11 +85,9 @@ class DnsClient internal constructor(
             return dnsQueryResult
         }
 
-        val dnsServerAddresses =
-            this.serverAddresses
 
         var ioException: Exception? = null
-        for (dns in dnsServerAddresses) {
+        for (dns in serverAddresses) {
             if (nonRaServers.contains(dns)) {
                 println("Skipping $dns because it was marked as \"recursion not available\"")  // todo
                 continue
