@@ -71,10 +71,8 @@ data class DnsMessage(
                     dos.write(question.toByteArray())
                 }
             }
-            if (answerSection != null) {
-                for (answer in answerSection) {
-                    dos.write(answer.toByteArray())
-                }
+            for (answer in answerSection) {
+                dos.write(answer.toByteArray())
             }
             if (authoritySection != null) {
                 for (nameserverDnsRecord in authoritySection) {
