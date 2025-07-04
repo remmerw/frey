@@ -38,27 +38,25 @@ interface DnsUtility {
         ): DnsMessage {
             var packet = asDatagram(query, address)
 
-            val selectorManager = SelectorManager(Dispatchers.IO)
-
-            try {
+            SelectorManager(Dispatchers.IO).use { selectorManager ->
                 aSocket(selectorManager).udp().connect(
                     address, null
                 ).use { socket ->
+
                     socket.send(packet)
                     packet = socket.receive()
                     val dnsMessage: DnsMessage = DnsMessage.Companion.parse(packet.packet)
-                    check(dnsMessage.id == query.id) { "The response's ID doesn't matches the request ID" }
+                    check(dnsMessage.id == query.id) {
+                        "The response's ID doesn't matches the request ID"
+                    }
                     return dnsMessage
                 }
-            } finally {
-                selectorManager.close()
             }
         }
 
 
         private suspend fun queryTcp(message: DnsMessage, address: InetSocketAddress): DnsMessage {
-            val selectorManager = SelectorManager(Dispatchers.IO)
-            try {
+            SelectorManager(Dispatchers.IO).use { selectorManager ->
                 aSocket(selectorManager).tcp().connect(address) {
                     socketTimeout = DNS_TIMEOUT.toLong()
                 }.use { socket ->
@@ -72,11 +70,11 @@ interface DnsUtility {
                     val length = receiveChannel.readShort()
                     val data = receiveChannel.readBuffer(length.toInt())
                     val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
-                    check(dnsMessage.id == message.id) { "The response's ID doesn't matches the request ID" }
+                    check(dnsMessage.id == message.id) {
+                        "The response's ID doesn't matches the request ID"
+                    }
                     return dnsMessage
                 }
-            } finally {
-                selectorManager.close()
             }
         }
 
