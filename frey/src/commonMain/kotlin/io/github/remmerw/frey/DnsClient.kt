@@ -86,7 +86,7 @@ class DnsClient internal constructor(
         }
 
 
-        var ioException: Exception? = null
+
         for (dns in serverAddresses) {
             if (nonRaServers.contains(dns)) {
                 println("Skipping $dns because it was marked as \"recursion not available\"")
@@ -95,8 +95,7 @@ class DnsClient internal constructor(
 
             try {
                 dnsQueryResult = query(q, dns)
-            } catch (exception: Exception) {
-                ioException = exception
+            } catch (_: Exception) {
                 continue
             }
 
@@ -125,10 +124,6 @@ class DnsClient internal constructor(
             }
 
             return dnsQueryResult
-        }
-
-        if (ioException != null) {
-            throw ioException
         }
 
         throw IllegalArgumentException("No DNS server could be queried")
