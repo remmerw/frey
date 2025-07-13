@@ -19,7 +19,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             ...
-            implementation("io.github.remmerw:frey:0.0.3")
+            implementation("io.github.remmerw:frey:0.0.4")
         }
         ...
     }
@@ -30,32 +30,6 @@ kotlin {
 ## API
 
 ```
-
-    @Test
-    fun testTXTRecord() : Unit = runBlocking(Dispatchers.IO) {
-        val resolver = DnsResolver()
-        val result = resolver.retrieveTxtRecords("_dnsaddr.bootstrap.libp2p.io")
-        assertNotNull(result)
-        assertFalse(result.isEmpty())
-        result.forEach { text -> println(text) }
-    }
-
-    @Test
-    fun testAAAARecord() : Unit = runBlocking(Dispatchers.IO) {
-        val resolver = DnsResolver()
-        val addresses = resolver.retrieveAAAARecord("www.welt.de")
-        assertNotNull(addresses)
-        assertFalse(addresses.isEmpty())
-    }
-
-    @Test
-    fun testARecord() : Unit = runBlocking(Dispatchers.IO) {
-        val resolver = DnsResolver()
-        val addresses = resolver.retrieveARecord("www.welt.de")
-        assertNotNull(addresses)
-        assertFalse(addresses.isEmpty())
-    }
-    
     @Test
     fun testDnsAddr() : Unit = runBlocking(Dispatchers.IO) {
         val resolver = DnsResolver()
@@ -71,6 +45,32 @@ kotlin {
         val result = resolver.resolveDnsLink("bootstrap.libp2p.io") // this fails, not valid
         assertNotNull(result)
         assertTrue(result.isEmpty())
+    }
+
+
+    @Test
+    fun testTXTRecord() : Unit = runBlocking(Dispatchers.IO) {
+        val resolver = DnsResolver()
+        val result = resolver.retrieveTxtRecords("_dnsaddr.bootstrap.libp2p.io")
+        assertNotNull(result)
+        assertFalse(result.isEmpty())
+        result.forEach { text -> println(text) }
+    }
+
+    @Test
+    fun testAAAARecord() : Unit = runBlocking(Dispatchers.IO) {
+        val resolver = DnsResolver(defaultDnsServerIpv6())
+        val addresses = resolver.retrieveAAAARecord("www.welt.de")
+        assertNotNull(addresses)
+        assertFalse(addresses.isEmpty())
+    }
+
+    @Test
+    fun testARecord() : Unit = runBlocking(Dispatchers.IO) {
+        val resolver = DnsResolver(defaultDnsServerIpv4())
+        val addresses = resolver.retrieveARecord("www.welt.de")
+        assertNotNull(addresses)
+        assertFalse(addresses.isEmpty())
     }
 
 ```

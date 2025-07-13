@@ -11,8 +11,8 @@ import kotlin.random.Random
  * This circumvents the missing javax.naming package on android.
  */
 class DnsClient internal constructor(
-    private val addresses: () -> (List<InetSocketAddress>),
-    val dnsCache: DnsCache
+    private val dnsServer: List<InetSocketAddress>,
+    private val dnsCache: DnsCache
 ) {
     /**
      * The internal random class for sequence generation.
@@ -69,8 +69,6 @@ class DnsClient internal constructor(
         return responseMessage
     }
 
-    private val serverAddresses: List<InetSocketAddress>
-        get() = addresses.invoke()
 
 
     private suspend fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
@@ -87,7 +85,7 @@ class DnsClient internal constructor(
 
 
 
-        for (dns in serverAddresses) {
+        for (dns in dnsServer) {
             if (nonRaServers.contains(dns)) {
                 println("Skipping $dns because it was marked as \"recursion not available\"")
                 continue

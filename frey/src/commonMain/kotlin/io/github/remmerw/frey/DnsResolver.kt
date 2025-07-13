@@ -1,17 +1,31 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.TXT
+import io.github.remmerw.frey.DnsResolver.Companion.IPV4_DNS_SERVERS
+import io.github.remmerw.frey.DnsResolver.Companion.IPV6_DNS_SERVERS
 import io.ktor.network.sockets.InetSocketAddress
 
+fun defaultDnsServer() : List<InetSocketAddress> {
+    val list = ArrayList<InetSocketAddress>()
+    list.addAll(IPV4_DNS_SERVERS)
+    list.addAll(IPV6_DNS_SERVERS)
+    return list
+}
 
-class DnsResolver {
-    private val dnsClient = DnsClient({
-        val list = ArrayList<InetSocketAddress>()
-        list.addAll(STATIC_IPV4_DNS_SERVERS)
-        list.addAll(STATIC_IPV6_DNS_SERVERS)
-        list
-    }, DnsCache())
+fun defaultDnsServerIpv6() : List<InetSocketAddress> {
+    val list = ArrayList<InetSocketAddress>()
+    list.addAll(IPV6_DNS_SERVERS)
+    return list
+}
 
+fun defaultDnsServerIpv4() : List<InetSocketAddress> {
+    val list = ArrayList<InetSocketAddress>()
+    list.addAll(IPV4_DNS_SERVERS)
+    return list
+}
+
+class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
+    private val dnsClient = DnsClient(dnsServer, DnsCache())
 
     suspend fun retrieveARecord(host: String): List<ByteArray> {
         val response: MutableList<ByteArray> = mutableListOf()
@@ -90,21 +104,21 @@ class DnsResolver {
 
 
     companion object {
-        val STATIC_IPV4_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
-        val STATIC_IPV6_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
+        val IPV4_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
+        val IPV6_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
         private const val DNS_ADDR = "dnsaddr="
         private const val DNS_LINK = "dnslink="
 
         init {
             try {
-                STATIC_IPV4_DNS_SERVERS.add(InetSocketAddress("8.8.8.8", 53))
+                IPV4_DNS_SERVERS.add(InetSocketAddress("8.8.8.8", 53))
                 // CLOUDFLARE_DNS_SERVER_IP4 = "1.1.1.1";
             } catch (e: IllegalArgumentException) {
                 debug(e)
             }
 
             try {
-                STATIC_IPV6_DNS_SERVERS.add(InetSocketAddress("[2001:4860:4860::8888]", 53))
+                IPV6_DNS_SERVERS.add(InetSocketAddress("[2001:4860:4860::8888]", 53))
             } catch (e: IllegalArgumentException) {
                 debug(e)
             }

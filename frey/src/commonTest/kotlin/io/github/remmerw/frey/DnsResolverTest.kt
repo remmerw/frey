@@ -40,7 +40,7 @@ class DnsResolverTest {
 
     @Test
     fun testAAAARecord() : Unit = runBlocking(Dispatchers.IO) {
-        val resolver = DnsResolver()
+        val resolver = DnsResolver(defaultDnsServerIpv6())
         val addresses = resolver.retrieveAAAARecord("www.welt.de")
         assertNotNull(addresses)
         assertFalse(addresses.isEmpty())
@@ -48,7 +48,7 @@ class DnsResolverTest {
 
     @Test
     fun testARecord() : Unit = runBlocking(Dispatchers.IO) {
-        val resolver = DnsResolver()
+        val resolver = DnsResolver(defaultDnsServerIpv4())
         val addresses = resolver.retrieveARecord("www.welt.de")
         assertNotNull(addresses)
         assertFalse(addresses.isEmpty())
