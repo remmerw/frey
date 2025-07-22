@@ -2,7 +2,6 @@
     <div>
         <img src="https://img.shields.io/maven-central/v/io.github.remmerw/frey" alt="Kotlin Maven Version" />
         <img src="https://img.shields.io/badge/Platform-Android-brightgreen.svg?logo=android" alt="Badge Android" />
-        <img src="https://img.shields.io/badge/Platform-iOS%20%2F%20macOS-lightgrey.svg?logo=apple" alt="Badge iOS" />
         <img src="https://img.shields.io/badge/Platform-JVM-8A2BE2.svg?logo=openjdk" alt="Badge JVM" />
     </div>
 </div>
@@ -19,7 +18,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             ...
-            implementation("io.github.remmerw:frey:0.1.0")
+            implementation("io.github.remmerw:frey:0.2.0")
         }
         ...
     }
@@ -30,8 +29,9 @@ kotlin {
 ## API
 
 ```
+    
     @Test
-    fun testDnsAddr() : Unit = runBlocking(Dispatchers.IO) {
+    fun testDnsAddr() {
         val resolver = DnsResolver()
         val result = resolver.resolveDnsAddr("bootstrap.libp2p.io")
         assertNotNull(result)
@@ -40,7 +40,7 @@ kotlin {
     }
 
     @Test
-    fun testDnsLinkFailure() : Unit = runBlocking(Dispatchers.IO) {
+    fun testDnsLinkFailure() {
         val resolver = DnsResolver()
         val result = resolver.resolveDnsLink("bootstrap.libp2p.io") // this fails, not valid
         assertNotNull(result)
@@ -49,7 +49,7 @@ kotlin {
 
 
     @Test
-    fun testTXTRecord() : Unit = runBlocking(Dispatchers.IO) {
+    fun testTXTRecord() {
         val resolver = DnsResolver()
         val result = resolver.retrieveTxtRecords("_dnsaddr.bootstrap.libp2p.io")
         assertNotNull(result)
@@ -58,7 +58,7 @@ kotlin {
     }
 
     @Test
-    fun testAAAARecord() : Unit = runBlocking(Dispatchers.IO) {
+    fun testAAAARecord() {
         val resolver = DnsResolver(defaultDnsServerIpv6())
         val addresses = resolver.retrieveAAAARecord("www.welt.de")
         assertNotNull(addresses)
@@ -66,7 +66,7 @@ kotlin {
     }
 
     @Test
-    fun testARecord() : Unit = runBlocking(Dispatchers.IO) {
+    fun testARecord() {
         val resolver = DnsResolver(defaultDnsServerIpv4())
         val addresses = resolver.retrieveARecord("www.welt.de")
         assertNotNull(addresses)

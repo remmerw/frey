@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "io.github.remmerw"
-version = "0.1.0"
+version = "0.2.0"
 
 kotlin {
 
@@ -27,10 +27,9 @@ kotlin {
 
 
     jvm()
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
-
+    // iosX64()
+    // iosArm64()
+    // iosSimulatorArm64()
     // linuxArm64()
     // linuxX64()
     // linuxArm64()
@@ -43,8 +42,6 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 implementation(libs.kotlinx.io.core)
-                implementation(libs.ktor.network)
-                implementation(libs.atomicfu)
             }
         }
 

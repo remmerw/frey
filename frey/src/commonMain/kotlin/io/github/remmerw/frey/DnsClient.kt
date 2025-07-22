@@ -2,8 +2,7 @@ package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsMessage.ResponseCode
 import io.github.remmerw.frey.DnsName.Companion.from
-import io.ktor.network.sockets.InetSocketAddress
-import io.ktor.util.collections.ConcurrentSet
+import java.net.InetSocketAddress
 import kotlin.random.Random
 
 /**
@@ -19,7 +18,7 @@ class DnsClient internal constructor(
      */
     private val random: Random = Random
 
-    private val nonRaServers: MutableSet<InetSocketAddress> = ConcurrentSet()
+    private val nonRaServers: MutableSet<InetSocketAddress> = mutableSetOf()
 
     fun onResponse(requestMessage: DnsMessage, responseMessage: DnsQueryResult) {
         val q = requestMessage.question
@@ -37,13 +36,13 @@ class DnsClient internal constructor(
      * @return The response (or null on timeout/error).
      */
 
-    suspend fun query(name: CharSequence, type: DnsRecord.TYPE): DnsQueryResult {
+    fun query(name: CharSequence, type: DnsRecord.TYPE): DnsQueryResult {
         val q: DnsQuestion = DnsQuestion.Companion.create(from(name), type)
         return query(q)
     }
 
 
-    private suspend fun query(q: DnsQuestion): DnsQueryResult {
+    private fun query(q: DnsQuestion): DnsQueryResult {
         val query = buildMessage(q)
         return query(query)
     }
@@ -63,15 +62,14 @@ class DnsClient internal constructor(
     }
 
 
-    private suspend fun query(query: DnsMessage, address: InetSocketAddress): DnsQueryResult {
+    private fun query(query: DnsMessage, address: InetSocketAddress): DnsQueryResult {
         val responseMessage: DnsQueryResult = DnsUtility.Companion.query(query, address)
         onResponse(query, responseMessage)
         return responseMessage
     }
 
 
-
-    private suspend fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
+    private fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
         val q: DnsMessage = newQuestion(queryBuilder).build()
         // While this query method does in fact re-use query(Question, String)
         // we still do a cache lookup here in order to avoid unnecessary

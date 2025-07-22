@@ -1,8 +1,5 @@
 package io.github.remmerw.frey
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -12,7 +9,7 @@ import kotlin.test.assertTrue
 class DnsResolverTest {
 
     @Test
-    fun testDnsAddr() : Unit = runBlocking(Dispatchers.IO) {
+    fun testDnsAddr() {
         val resolver = DnsResolver()
         val result = resolver.resolveDnsAddr("bootstrap.libp2p.io")
         assertNotNull(result)
@@ -21,7 +18,7 @@ class DnsResolverTest {
     }
 
     @Test
-    fun testDnsLinkFailure() : Unit = runBlocking(Dispatchers.IO) {
+    fun testDnsLinkFailure() {
         val resolver = DnsResolver()
         val result = resolver.resolveDnsLink("bootstrap.libp2p.io") // this fails, not valid
         assertNotNull(result)
@@ -30,7 +27,7 @@ class DnsResolverTest {
 
 
     @Test
-    fun testTXTRecord() : Unit = runBlocking(Dispatchers.IO) {
+    fun testTXTRecord() {
         val resolver = DnsResolver()
         val result = resolver.retrieveTxtRecords("_dnsaddr.bootstrap.libp2p.io")
         assertNotNull(result)
@@ -39,7 +36,7 @@ class DnsResolverTest {
     }
 
     @Test
-    fun testAAAARecord() : Unit = runBlocking(Dispatchers.IO) {
+    fun testAAAARecord() {
         val resolver = DnsResolver(defaultDnsServerIpv6())
         val addresses = resolver.retrieveAAAARecord("www.welt.de")
         assertNotNull(addresses)
@@ -47,7 +44,7 @@ class DnsResolverTest {
     }
 
     @Test
-    fun testARecord() : Unit = runBlocking(Dispatchers.IO) {
+    fun testARecord() {
         val resolver = DnsResolver(defaultDnsServerIpv4())
         val addresses = resolver.retrieveARecord("www.welt.de")
         assertNotNull(addresses)

@@ -1,8 +1,6 @@
 package io.github.remmerw.frey
 
-import io.ktor.util.collections.ConcurrentMap
-import kotlinx.atomicfu.locks.reentrantLock
-import kotlinx.atomicfu.locks.withLock
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
 import kotlin.time.toDuration
@@ -14,8 +12,7 @@ class DnsCache {
     /**
      * The backend cache.
      */
-    private val backend: ConcurrentMap<DnsMessage, DnsQueryResult> = ConcurrentMap()
-    private val reentrantLock = reentrantLock()
+    private val backend: MutableMap<DnsMessage, DnsQueryResult> = ConcurrentHashMap()
 
     /**
      * Internal miss count.
@@ -34,41 +31,39 @@ class DnsCache {
 
 
     private fun putNormalized(q: DnsMessage, result: DnsQueryResult) {
-        reentrantLock.withLock {
-            backend.put(q, DnsQueryResult(result.response))
-        }
+        backend.put(q, DnsQueryResult(result.response))
     }
 
 
     private fun getNormalized(q: DnsMessage): DnsQueryResult? {
-        reentrantLock.withLock {
 
-            val result = backend[q]
 
-            if (result == null) {
-                missCount++
-                return null
-            }
+        val result = backend[q]
 
-            val message = result.response
-
-            // RFC 2181 § 5.2 says that all TTLs in a RRSet should be equal, if this isn't the case, then we assume the
-            // shortest TTL to be the effective one.
-            val answersMinTtl = message.answersMinTtl
-
-            val expiryDate =
-                message.receiveTimestamp.plus(answersMinTtl.toDuration(DurationUnit.SECONDS))
-            val now = TimeSource.Monotonic.markNow()
-            if (expiryDate < now) {
-                missCount++
-                expireCount++
-                backend.remove(q)
-                return null
-            } else {
-                hitCount++
-                return result
-            }
+        if (result == null) {
+            missCount++
+            return null
         }
+
+        val message = result.response
+
+        // RFC 2181 § 5.2 says that all TTLs in a RRSet should be equal, if this isn't the case, then we assume the
+        // shortest TTL to be the effective one.
+        val answersMinTtl = message.answersMinTtl
+
+        val expiryDate =
+            message.receiveTimestamp.plus(answersMinTtl.toDuration(DurationUnit.SECONDS))
+        val now = TimeSource.Monotonic.markNow()
+        if (expiryDate < now) {
+            missCount++
+            expireCount++
+            backend.remove(q)
+            return null
+        } else {
+            hitCount++
+            return result
+        }
+
     }
 
     /**

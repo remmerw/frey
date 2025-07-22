@@ -3,31 +3,31 @@ package io.github.remmerw.frey
 import io.github.remmerw.frey.DnsData.TXT
 import io.github.remmerw.frey.DnsResolver.Companion.IPV4_DNS_SERVERS
 import io.github.remmerw.frey.DnsResolver.Companion.IPV6_DNS_SERVERS
-import io.ktor.network.sockets.InetSocketAddress
+import java.net.InetSocketAddress
 
-fun defaultDnsServer() : List<InetSocketAddress> {
+fun defaultDnsServer(): List<InetSocketAddress> {
     val list = ArrayList<InetSocketAddress>()
     list.addAll(IPV4_DNS_SERVERS)
     list.addAll(IPV6_DNS_SERVERS)
     return list
 }
 
-fun defaultDnsServerIpv6() : List<InetSocketAddress> {
+fun defaultDnsServerIpv6(): List<InetSocketAddress> {
     val list = ArrayList<InetSocketAddress>()
     list.addAll(IPV6_DNS_SERVERS)
     return list
 }
 
-fun defaultDnsServerIpv4() : List<InetSocketAddress> {
+fun defaultDnsServerIpv4(): List<InetSocketAddress> {
     val list = ArrayList<InetSocketAddress>()
     list.addAll(IPV4_DNS_SERVERS)
     return list
 }
 
-class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
+class DnsResolver(dnsServer: List<InetSocketAddress> = defaultDnsServer()) {
     private val dnsClient = DnsClient(dnsServer, DnsCache())
 
-    suspend fun retrieveARecord(host: String): List<ByteArray> {
+    fun retrieveARecord(host: String): List<ByteArray> {
         val response: MutableList<ByteArray> = mutableListOf()
         try {
             val result = dnsClient.query(host, DnsRecord.TYPE.A)
@@ -44,7 +44,7 @@ class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
     }
 
 
-    suspend fun retrieveAAAARecord(host: String): List<ByteArray> {
+    fun retrieveAAAARecord(host: String): List<ByteArray> {
         val response: MutableList<ByteArray> = mutableListOf()
         try {
             val result = dnsClient.query(host, DnsRecord.TYPE.AAAA)
@@ -61,7 +61,7 @@ class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
         return response
     }
 
-    suspend fun retrieveTxtRecords(host: String): MutableSet<String> {
+    fun retrieveTxtRecords(host: String): MutableSet<String> {
         val txtRecords: MutableSet<String> = mutableSetOf()
         try {
             val result = dnsClient.query(host, DnsRecord.TYPE.TXT)
@@ -78,7 +78,7 @@ class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
         return txtRecords
     }
 
-    suspend fun resolveDnsLink(host: String): String {
+    fun resolveDnsLink(host: String): String {
         val txtRecords = retrieveTxtRecords("_dnslink.$host")
         for (txtRecord in txtRecords) {
             if (txtRecord.startsWith(DNS_LINK)) {
@@ -88,7 +88,7 @@ class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
         return ""
     }
 
-    suspend fun resolveDnsAddr(host: String): Set<String> {
+    fun resolveDnsAddr(host: String): Set<String> {
         val multiAddresses: MutableSet<String> = mutableSetOf()
 
         val txtRecords = retrieveTxtRecords("_dnsaddr.$host")
@@ -126,6 +126,13 @@ class DnsResolver(dnsServer:List<InetSocketAddress> = defaultDnsServer()) {
     }
 }
 
+// "In the absence of these mechanisms, QUIC endpoints SHOULD NOT send IP
+//   packets larger than 1280 bytes.  Assuming the minimum IP header size,
+//   this results in a QUIC maximum packet size of 1232 bytes for IPv6 and
+//   1252 bytes for IPv4."
+// As it is not know (yet) whether running over IP4 or IP6, take the smallest of the two:
+const val MAX_PACKET_SIZE: Int = 1232
+const val SO_TIMEOUT: Int = 3000
 
 internal fun debug(throwable: Throwable) {
     if (ERROR) {

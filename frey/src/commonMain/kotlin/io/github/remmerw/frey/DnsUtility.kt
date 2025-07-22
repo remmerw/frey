@@ -1,81 +1,59 @@
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsName.Companion.root
-import io.ktor.network.selector.SelectorManager
-import io.ktor.network.sockets.Datagram
-import io.ktor.network.sockets.InetSocketAddress
-import io.ktor.network.sockets.aSocket
-import io.ktor.network.sockets.openReadChannel
-import io.ktor.network.sockets.openWriteChannel
-import io.ktor.utils.io.readBuffer
-import io.ktor.utils.io.readShort
-import io.ktor.utils.io.writeBuffer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetSocketAddress
 
 interface DnsUtility {
     companion object {
 
-        suspend fun query(message: DnsMessage, address: InetSocketAddress): DnsQueryResult {
-            try {
-                return DnsQueryResult(queryUdp(message, address))
-            } catch (_: Exception) {
-                // ignore the first query
-            }
-
-            return DnsQueryResult(queryTcp(message, address))
+        fun query(message: DnsMessage, address: InetSocketAddress): DnsQueryResult {
+            return DnsQueryResult(queryUdp(message, address))
         }
 
-        private fun asDatagram(query: DnsMessage, address: InetSocketAddress): Datagram {
+        private fun asDatagram(query: DnsMessage, address: InetSocketAddress): DatagramPacket {
             val bytes = query.serialize()
-            return Datagram(bytes, address)
+            val data = bytes.readByteArray()
+            return DatagramPacket(data, data.size, address)
         }
 
-        private suspend fun queryUdp(
+        private fun queryUdp(
             query: DnsMessage,
             address: InetSocketAddress
         ): DnsMessage {
-            var packet = asDatagram(query, address)
 
-            SelectorManager(Dispatchers.IO).use { selectorManager ->
-                aSocket(selectorManager).udp().connect(
-                    address, null
-                ).use { socket ->
+            val packet = asDatagram(query, address)
 
-                    socket.send(packet)
-                    packet = socket.receive()
-                    val dnsMessage: DnsMessage = DnsMessage.Companion.parse(packet.packet)
-                    check(dnsMessage.id == query.id) {
-                        "The response's ID doesn't matches the request ID"
-                    }
-                    return dnsMessage
+            val socket = DatagramSocket()
+            socket.soTimeout = SO_TIMEOUT
+            try {
+                socket.send(packet)
+
+                val data = ByteArray(MAX_PACKET_SIZE)
+                val receivedPacket = DatagramPacket(data, data.size)
+
+                socket.receive(receivedPacket)
+
+                val buffer = Buffer()
+                buffer.write(
+                    receivedPacket.data.copyOfRange(
+                        0, receivedPacket.length
+                    )
+                )
+
+                val dnsMessage: DnsMessage = DnsMessage.Companion.parse(buffer)
+                check(dnsMessage.id == query.id) {
+                    "The response's ID doesn't matches the request ID"
                 }
+                return dnsMessage
+
+            } finally {
+                socket.close()
             }
-        }
 
-
-        private suspend fun queryTcp(message: DnsMessage, address: InetSocketAddress): DnsMessage {
-            SelectorManager(Dispatchers.IO).use { selectorManager ->
-                aSocket(selectorManager).tcp().connect(address) {
-                    socketTimeout = DNS_TIMEOUT.toLong()
-                }.use { socket ->
-
-                    val sendChannel = socket.openWriteChannel(autoFlush = true)
-                    val buffer = Buffer()
-                    message.writeTo(buffer)
-                    sendChannel.writeBuffer(buffer)
-
-                    val receiveChannel = socket.openReadChannel()
-                    val length = receiveChannel.readShort()
-                    val data = receiveChannel.readBuffer(length.toInt())
-                    val dnsMessage: DnsMessage = DnsMessage.Companion.parse(data)
-                    check(dnsMessage.id == message.id) {
-                        "The response's ID doesn't matches the request ID"
-                    }
-                    return dnsMessage
-                }
-            }
         }
 
 
@@ -92,9 +70,5 @@ interface DnsUtility {
 
         const val UDP_PAYLOAD_SIZE: Int = 1024
 
-        /**
-         * DNS timeout.
-         */
-        const val DNS_TIMEOUT: Int = 5000 // 5000 ms
     }
 }
