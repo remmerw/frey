@@ -63,7 +63,7 @@ class DnsClient internal constructor(
 
 
     private fun query(query: DnsMessage, address: InetSocketAddress): DnsQueryResult {
-        val responseMessage: DnsQueryResult = DnsUtility.Companion.query(query, address)
+        val responseMessage: DnsQueryResult = DnsUtility.query(query, address)
         onResponse(query, responseMessage)
         return responseMessage
     }
@@ -146,7 +146,7 @@ class DnsClient internal constructor(
         private fun newQuestion(message: DnsMessage.Builder): DnsMessage.Builder {
             message.setRecursionDesired()
             val askForDnssec = false
-            message.ednsBuilder.setUdpPayloadSize(DnsUtility.Companion.UDP_PAYLOAD_SIZE)
+            message.ednsBuilder.setUdpPayloadSize(DnsUtility.UDP_PAYLOAD_SIZE)
                 .setDnssecOk(askForDnssec)
             return message
         }
