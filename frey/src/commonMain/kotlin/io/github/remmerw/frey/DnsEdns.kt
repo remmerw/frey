@@ -42,7 +42,7 @@ data class DnsEdns(
 
             init {
                 for (optionCode in entries) {
-                    INVERSE_LUT.put(optionCode.asInt, optionCode)
+                    INVERSE_LUT[optionCode.asInt] = optionCode
                 }
             }
 
@@ -96,7 +96,7 @@ data class DnsEdns(
             }
 
             fun parse(intOptionCode: Int, optionData: ByteArray): Option {
-                val optionCode = OptionCode.Companion.from(intOptionCode)
+                val optionCode = OptionCode.from(intOptionCode)
                 return if (optionCode == OptionCode.NSID) {
                     create(optionData, optionCode)
                 } else {

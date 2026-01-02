@@ -31,7 +31,7 @@ class DnsCache {
 
 
     private fun putNormalized(q: DnsMessage, result: DnsQueryResult) {
-        backend.put(q, DnsQueryResult(result.response))
+        backend[q] = DnsQueryResult(result.response)
     }
 
 

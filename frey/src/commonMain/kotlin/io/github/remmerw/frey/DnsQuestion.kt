@@ -28,8 +28,6 @@ data class DnsQuestion(
 
     companion object {
         fun create(name: DnsName, type: DnsRecord.TYPE): DnsQuestion {
-            checkNotNull(name)
-            checkNotNull(type)
             return DnsQuestion(name, type, DnsRecord.CLASS.IN, false)
         }
 
@@ -44,8 +42,8 @@ data class DnsQuestion(
         fun parse(dis: Buffer, data: ByteArray): DnsQuestion {
             return DnsQuestion(
                 DnsName.parse(dis, data),
-                DnsRecord.TYPE.Companion.getType(dis.readShort().toInt()),
-                DnsRecord.CLASS.Companion.getClass(dis.readShort().toInt()), false
+                DnsRecord.TYPE.getType(dis.readShort().toInt()),
+                DnsRecord.CLASS.getClass(dis.readShort().toInt()), false
             )
         }
     }

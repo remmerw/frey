@@ -45,7 +45,7 @@ object DnsUtility {
                 )
             )
 
-            val dnsMessage: DnsMessage = DnsMessage.Companion.parse(buffer)
+            val dnsMessage: DnsMessage = DnsMessage.parse(buffer)
             check(dnsMessage.id == query.id) {
                 "The response's ID doesn't matches the request ID"
             }
@@ -55,7 +55,6 @@ object DnsUtility {
             socket.close()
         }
     }
-
 
 
     fun toASCII(input: String): String {

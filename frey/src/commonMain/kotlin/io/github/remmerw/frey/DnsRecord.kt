@@ -103,7 +103,7 @@ data class DnsRecord(
             init {
                 // Initialize the reverse lookup table.
                 for (t in entries) {
-                    INVERSE_LUT.put(t.value, t)
+                    INVERSE_LUT[t.value] = t
                 }
             }
 
@@ -114,8 +114,7 @@ data class DnsRecord(
              * @return The symbolic tpye.
              */
             fun getType(value: Int): TYPE {
-                val type: TYPE? = INVERSE_LUT[value]
-                if (type == null) return UNKNOWN
+                val type: TYPE = INVERSE_LUT[value] ?: return UNKNOWN
                 return type
             }
         }
@@ -168,9 +167,9 @@ data class DnsRecord(
             private val INVERSE_LUT = HashMap<Int?, CLASS?>()
 
             init {
-                // Initialize the interal reverse lookup table.
+                // Initialize the internal reverse lookup table.
                 for (c in entries) {
-                    INVERSE_LUT.put(c.value, c)
+                    INVERSE_LUT[c.value] = c
                 }
             }
 
@@ -209,9 +208,9 @@ data class DnsRecord(
         fun parse(dis: Buffer, data: ByteArray): DnsRecord {
             val name = DnsName.parse(dis, data)
             val typeValue = dis.readShort().toInt()
-            val type: TYPE = TYPE.Companion.getType(typeValue)
+            val type: TYPE = TYPE.getType(typeValue)
             val clazzValue = dis.readShort().toInt()
-            val clazz: CLASS? = CLASS.Companion.getClass(clazzValue and 0x7fff)
+            val clazz: CLASS? = CLASS.getClass(clazzValue and 0x7fff)
             val ttl = ((dis.readShort().toLong()) shl 16) +
                     dis.readShort().toInt()
             val payloadLength = dis.readShort().toInt()

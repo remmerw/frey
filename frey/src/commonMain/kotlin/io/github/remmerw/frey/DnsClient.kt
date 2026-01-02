@@ -37,7 +37,7 @@ class DnsClient internal constructor(
      */
 
     fun query(name: CharSequence, type: DnsRecord.TYPE): DnsQueryResult {
-        val q: DnsQuestion = DnsQuestion.Companion.create(from(name), type)
+        val q: DnsQuestion = DnsQuestion.create(from(name), type)
         return query(q)
     }
 
@@ -54,7 +54,7 @@ class DnsClient internal constructor(
      * @return A [DnsMessage] requesting the answer for the given Question.
      */
     private fun buildMessage(question: DnsQuestion): DnsMessage.Builder {
-        val message: DnsMessage.Builder = DnsMessage.Companion.builder()
+        val message: DnsMessage.Builder = DnsMessage.builder()
         message.setQuestion(question)
         message.setId(random.nextInt().toUShort())
         newQuestion(message)

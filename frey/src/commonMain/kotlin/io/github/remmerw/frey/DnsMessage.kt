@@ -193,7 +193,7 @@ data class DnsMessage(
 
             init {
                 for (responseCode in entries) {
-                    INVERSE_LUT.put(responseCode.value.toInt(), responseCode)
+                    INVERSE_LUT[responseCode.value.toInt()] = responseCode
                 }
             }
 
@@ -206,7 +206,7 @@ data class DnsMessage(
              */
             @Throws(IllegalArgumentException::class)
             fun getResponseCode(value: Int): ResponseCode? {
-                require(!(value < 0 || value > 65535))
+                require(value in 0..65535)
                 return INVERSE_LUT[value]
             }
         }
@@ -257,7 +257,7 @@ data class DnsMessage(
              */
             @Throws(IllegalArgumentException::class)
             fun getOpcode(value: Int): OPCODE? {
-                require(!(value < 0 || value > 15))
+                require(value in 0..15)
                 if (value >= INVERSE_LUT.size) {
                     return null
                 }
@@ -341,14 +341,14 @@ data class DnsMessage(
             val id = dis.readShort().toUShort()
             val header = dis.readShort().toInt()
             val qr = ((header shr 15) and 1) == 1
-            val opcode = OPCODE.Companion.getOpcode((header shr 11) and 0xf)
+            val opcode = OPCODE.getOpcode((header shr 11) and 0xf)
             val authoritativeAnswer = ((header shr 10) and 1) == 1
             val truncated = ((header shr 9) and 1) == 1
             val recursionDesired = ((header shr 8) and 1) == 1
             val recursionAvailable = ((header shr 7) and 1) == 1
             val authenticData = ((header shr 5) and 1) == 1
             val checkingDisabled = ((header shr 4) and 1) == 1
-            val responseCode = ResponseCode.Companion.getResponseCode(header and 0xf)
+            val responseCode = ResponseCode.getResponseCode(header and 0xf)
             val receiveTimestamp = TimeSource.Monotonic.markNow()
             val questionCount = dis.readShort().toInt()
             val answerCount = dis.readShort().toInt()
@@ -356,20 +356,20 @@ data class DnsMessage(
             val additionalResourceRecordCount = dis.readShort().toInt()
             val questions: MutableList<DnsQuestion> = mutableListOf()
             repeat(questionCount) {
-                questions.add(DnsQuestion.Companion.parse(dis, data))
+                questions.add(DnsQuestion.parse(dis, data))
             }
             val answerSection: MutableList<DnsRecord> = mutableListOf()
             repeat(answerCount) {
-                answerSection.add(DnsRecord.Companion.parse(dis, data))
+                answerSection.add(DnsRecord.parse(dis, data))
             }
             val authoritySection: MutableList<DnsRecord> = mutableListOf()
             repeat(nameserverCount) {
-                authoritySection.add(DnsRecord.Companion.parse(dis, data))
+                authoritySection.add(DnsRecord.parse(dis, data))
             }
             val additionalSection: MutableList<DnsRecord> =
                 mutableListOf()
             repeat(additionalResourceRecordCount) {
-                additionalSection.add(DnsRecord.Companion.parse(dis, data))
+                additionalSection.add(DnsRecord.parse(dis, data))
             }
             val optRrPosition: Int = getOptRrPosition(additionalSection)
 

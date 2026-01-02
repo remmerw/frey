@@ -124,7 +124,7 @@ data class DnsLabel(val label: String) {
         fun isXnLabelInternal(label: String): Boolean {
             // Note that we already ensure the minimum label length here, since reserved LDH
             // labels must start with "xn--".
-            return label.substring(0, 2).lowercase() == "xn"
+            return label.take(2).lowercase() == "xn"
         }
 
         fun isUnderscoreLabelInternal(label: String): Boolean {
@@ -208,9 +208,9 @@ data class DnsLabel(val label: String) {
         }
 
         private fun isLdhOrMaybeUnderscore(c: Char, underscore: Boolean): Boolean {
-            return (c >= 'a' && c <= 'z')
-                    || (c >= 'A' && c <= 'Z')
-                    || (c >= '0' && c <= '9')
+            return (c in 'a'..'z')
+                    || (c in 'A'..'Z')
+                    || (c in '0'..'9')
                     || c == '-' || (underscore && c == '_')
         }
 
