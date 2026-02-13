@@ -36,7 +36,7 @@ data class DnsEdns(
         ;
 
         companion object {
-            private val INVERSE_LUT: MutableMap<Int?, OptionCode?> = HashMap<Int?, OptionCode?>(
+            private val INVERSE_LUT: MutableMap<Int?, OptionCode?> = HashMap(
                 entries.size
             )
 
@@ -54,7 +54,7 @@ data class DnsEdns(
         }
     }
 
-    class EdnsBuilder() {
+    class EdnsBuilder {
         var udpPayloadSize = 0
         var dnssecOk = false
 
@@ -111,7 +111,7 @@ data class DnsEdns(
          * Inform the dns server that the client supports DNSSEC.
          */
         private const val FLAG_DNSSEC_OK = 0x8000
-        private val VARIABLE_PART: MutableList<Option> = ArrayList<Option>()
+        private val VARIABLE_PART = ArrayList<Option>()
 
 
         private fun create(builder: EdnsBuilder): DnsEdns {

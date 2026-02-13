@@ -106,7 +106,7 @@ data class DnsLabel(val label: String) {
 
             if (isReservedLdhLabel(label)) {
                 // Label starts with '??--'. Now let us see if it is a XN-Label, starting with 'xn--', but be aware that the
-                // 'xn' part is case insensitive. The XnLabel.isXnLabelInternal(String) method takes care of this.
+                // 'xn' part is case-insensitive. The XnLabel.isXnLabelInternal(String) method takes care of this.
                 return if (isXnLabelInternal(label)) {
                     fromXnLabel(label)
                 } else {
@@ -123,7 +123,7 @@ data class DnsLabel(val label: String) {
 
         fun isXnLabelInternal(label: String): Boolean {
             // Note that we already ensure the minimum label length here, since reserved LDH
-            // labels must start with "xn--".
+            // labels must start with 'xn--'.
             return label.take(2).lowercase() == "xn"
         }
 

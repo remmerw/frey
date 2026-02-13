@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package io.github.remmerw.frey
 
 import io.github.remmerw.frey.DnsData.TXT

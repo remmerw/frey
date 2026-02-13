@@ -30,7 +30,7 @@ object DnsUtility {
 
         val socket = DatagramSocket()
         socket.soTimeout = SO_TIMEOUT
-        try {
+        socket.use { socket ->
             socket.send(packet)
 
             val data = ByteArray(UDP_PAYLOAD_SIZE)
@@ -50,9 +50,6 @@ object DnsUtility {
                 "The response's ID doesn't matches the request ID"
             }
             return dnsMessage
-
-        } finally {
-            socket.close()
         }
     }
 

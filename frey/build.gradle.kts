@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
@@ -6,7 +5,7 @@ plugins {
 }
 
 group = "io.github.remmerw"
-version = "0.2.1"
+version = "0.2.2"
 
 kotlin {
 
@@ -14,7 +13,6 @@ kotlin {
         namespace = "io.github.remmerw.frey"
         compileSdk = 36
         minSdk = 27
-
 
 
         // Opt-in to enable and configure device-side (instrumented) tests

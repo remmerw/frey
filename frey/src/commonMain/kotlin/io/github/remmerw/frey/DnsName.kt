@@ -15,7 +15,7 @@ import kotlinx.io.readByteArray
  *
  * This class holds three representations of a DNS name: ACE, raw ACE and IDN. ACE (ASCII Compatible Encoding), which
  * can be accessed via [.ace], represents mostly the data that got send over the wire. But since DNS names are
- * case insensitive, the ACE value is normalized to lower case. You can use [.getRawAce] to get the raw ACE data
+ * case-insensitive, the ACE value is normalized to lower case. You can use [.getRawAce] to get the raw ACE data
  * that was received, which possibly includes upper case characters. The IDN (Internationalized Domain Name), that is
  * the DNS name as it should be shown to the user, can be retrieved using .
  *
@@ -86,7 +86,7 @@ data class DnsName(
 
 
     companion object {
-        private val DNS_LABELS_EMPTY: MutableList<DnsLabel> = ArrayList<DnsLabel>()
+        private val DNS_LABELS_EMPTY: MutableList<DnsLabel> = ArrayList()
         private const val MAX_LABELS = 128
 
         /**
@@ -214,10 +214,10 @@ data class DnsName(
 
         /**
          * Parse a domain name starting at the current offset and moving the input
-         * stream pointer past this domain name (even if cross references occure).
+         * stream pointer past this domain name (even if cross-references occure).
          *
          * @param dis  The input stream.
-         * @param data The raw data (for cross references).
+         * @param data The raw data (for cross-references).
          * @return The domain name string.
          */
 

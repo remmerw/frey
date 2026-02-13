@@ -7,7 +7,6 @@ import kotlin.random.Random
 
 /**
  * A minimal DNS client for TXT lookups, with IDN support.
- * This circumvents the missing javax.naming package on android.
  */
 class DnsClient internal constructor(
     private val dnsServer: List<InetSocketAddress>,

@@ -14,6 +14,7 @@ import kotlin.time.TimeSource.Monotonic.ValueTimeMark
  *
  * @see [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt)
  */
+@Suppress("unused")
 data class DnsMessage(
     val id: UShort, val opcode: OPCODE?, val responseCode: ResponseCode?,
     val receiveTimestamp: ValueTimeMark, val optRrPosition: Int, val recursionAvailable: Boolean,
@@ -187,7 +188,7 @@ data class DnsMessage(
              * Reverse lookup table for response codes.
              */
             private val INVERSE_LUT: MutableMap<Int?, ResponseCode?> =
-                HashMap<Int?, ResponseCode?>(
+                HashMap(
                     entries.size
                 )
 
@@ -236,7 +237,7 @@ data class DnsMessage(
 
         companion object {
             /**
-             * Lookup table for for opcode resolution.
+             * Lookup table for opcode resolution.
              */
             private val INVERSE_LUT = arrayOfNulls<OPCODE>(entries.size)
 
@@ -266,7 +267,7 @@ data class DnsMessage(
         }
     }
 
-    class Builder() {
+    class Builder {
         val opcode = OPCODE.QUERY
         val responseCode = ResponseCode.NO_ERROR
         var id: UShort = 0.toUShort()
@@ -384,7 +385,7 @@ data class DnsMessage(
         }
 
         /**
-         * Constructs an normalized version of the given DnsMessage by setting the id to '0'.
+         * Constructs a normalized version of the given DnsMessage by setting the id to '0'.
          *
          * @param message the message of which normalized version should be constructed.
          */

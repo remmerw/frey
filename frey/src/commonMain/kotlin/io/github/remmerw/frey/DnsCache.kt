@@ -67,7 +67,7 @@ class DnsCache {
     }
 
     /**
-     * Add an an dns answer/response for a given dns question. Implementations
+     * Add a dns answer/response for a given dns question. Implementations
      * should honor the ttl / receive timestamp.
      *
      * @param query  The query message containing a question.
