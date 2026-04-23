@@ -218,8 +218,8 @@ data class DnsLabel(val label: String) {
             string: String,
             underscore: Boolean
         ): Boolean {
-            for (i in 0..<string.length) {
-                val c: Char = string[i]
+            for (element in string) {
+                val c: Char = element
                 if (isLdhOrMaybeUnderscore(c, underscore)) {
                     continue
                 }

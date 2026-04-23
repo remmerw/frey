@@ -152,8 +152,8 @@ data class DnsMessage(
      *
      * @see [
      * IANA Domain Name System
-     * @see [RFC 6895 § 2.3](http://tools.ietf.org/html/rfc6895.section-2.3)
-    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-6) */
+     * @see [RFC 6895 § 2.3](http://tools.ietf.org/html/rfc6895.section-2.3)]
+     * (http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-6) */
     enum class ResponseCode(value: Int) {
         NO_ERROR(0),
         FORMAT_ERR(1),

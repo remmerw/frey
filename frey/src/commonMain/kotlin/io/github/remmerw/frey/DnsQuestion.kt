@@ -12,7 +12,7 @@ data class DnsQuestion(
     val unicastQuery: Boolean
 ) {
     /**
-     * Generate a binary paket for this dns question.
+     * Generate a binary packet for this dns question.
      *
      * @return The dns question.
      */
