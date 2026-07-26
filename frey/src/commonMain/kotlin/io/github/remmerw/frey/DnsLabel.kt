@@ -163,7 +163,7 @@ data class DnsLabel(val label: String) {
             }
 
             val sb = StringBuilder(2 * dnsLabel.length)
-            for (i in 0..dnsLabel.length) {
+            for (i in dnsLabel.indices) {
                 val c: Char = dnsLabel[i]
                 if (isLdhOrMaybeUnderscore(c, true)) {
                     sb.append(c)
