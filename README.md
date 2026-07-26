@@ -18,7 +18,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             ...
-            implementation("io.github.remmerw:frey:0.2.4")
+            implementation("io.github.remmerw:frey:0.2.5")
         }
         ...
     }
