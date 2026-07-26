@@ -40,9 +40,8 @@ object DnsUtility {
 
             val buffer = Buffer()
             buffer.write(
-                receivedPacket.data.copyOfRange(
+                receivedPacket.data,
                     0, receivedPacket.length
-                )
             )
 
             val dnsMessage: DnsMessage = DnsMessage.parse(buffer)
