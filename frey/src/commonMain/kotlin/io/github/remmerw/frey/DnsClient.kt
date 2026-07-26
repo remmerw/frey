@@ -84,7 +84,6 @@ class DnsClient internal constructor(
 
         for (dns in dnsServer) {
             if (nonRaServers.contains(dns)) {
-                println("Skipping $dns because it was marked as \"recursion not available\"")
                 continue
             }
 
