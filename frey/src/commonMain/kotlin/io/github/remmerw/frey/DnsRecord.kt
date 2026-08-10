@@ -73,9 +73,6 @@ data class DnsRecord(
      *
      * @param value The binary value of this type.
      */(
-        /**
-         * The value of this DNS record type.
-         */
         val value: Int
     ) {
         UNKNOWN(-1),
