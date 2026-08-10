@@ -8,14 +8,17 @@ import java.net.DatagramSocket
 import java.net.InetSocketAddress
 
 object DnsUtility {
-
     const val UDP_PAYLOAD_SIZE: Int = 1024
 
-    fun query(message: DnsMessage, address: InetSocketAddress): DnsQueryResult {
-        return DnsQueryResult(queryUdp(message, address))
-    }
+    fun query(
+        message: DnsMessage,
+        address: InetSocketAddress,
+    ): DnsQueryResult = DnsQueryResult(queryUdp(message, address))
 
-    private fun asDatagram(query: DnsMessage, address: InetSocketAddress): DatagramPacket {
+    private fun asDatagram(
+        query: DnsMessage,
+        address: InetSocketAddress,
+    ): DatagramPacket {
         val bytes = query.serialize()
         val data = bytes.readByteArray()
         return DatagramPacket(data, data.size, address)
@@ -23,9 +26,8 @@ object DnsUtility {
 
     private fun queryUdp(
         query: DnsMessage,
-        address: InetSocketAddress
+        address: InetSocketAddress,
     ): DnsMessage {
-
         val packet = asDatagram(query, address)
 
         val socket = DatagramSocket()
@@ -41,7 +43,8 @@ object DnsUtility {
             val buffer = Buffer()
             buffer.write(
                 receivedPacket.data,
-                    0, receivedPacket.length
+                0,
+                receivedPacket.length,
             )
 
             val dnsMessage: DnsMessage = DnsMessage.parse(buffer)
@@ -51,7 +54,6 @@ object DnsUtility {
             return dnsMessage
         }
     }
-
 
     fun toASCII(input: String): String {
         // Special case if input is ".", i.e. a string containing only a single dot character. This is a workaround for

@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
 
-
 /**
  * A DNS name, also called "domain name". A DNS name consists of multiple 'labels' (see [DnsLabel]) and is subject to certain restrictions (see
  * for example [RFC 3696 § 2.](https://tools.ietf.org/html/rfc3696#section-2)).
@@ -45,10 +44,8 @@ data class DnsName(
      */
     val rawAce: String,
     val labels: MutableList<DnsLabel>,
-    val rawLabels: MutableList<DnsLabel>
+    val rawLabels: MutableList<DnsLabel>,
 ) {
-
-
     fun toBuffer(buffer: Buffer) {
         for (i in labels.indices.reversed()) {
             labels[i].toBuffer(buffer)
@@ -56,14 +53,12 @@ data class DnsName(
         buffer.writeByte(0)
     }
 
-
-    fun size(): Int {
-        return if (isRootLabel(ace)) {
+    fun size(): Int =
+        if (isRootLabel(ace)) {
             1
         } else {
             ace.length + 2
         }
-    }
 
     override fun toString(): String {
         if (labels.isEmpty()) {
@@ -84,7 +79,6 @@ data class DnsName(
         return sb.toString()
     }
 
-
     companion object {
         private val DNS_LABELS_EMPTY: MutableList<DnsLabel> = ArrayList()
         private const val MAX_LABELS = 128
@@ -95,8 +89,10 @@ data class DnsName(
         private const val LABEL_SEP_REGEX = "[.。．｡]"
         private var root: DnsName? = null
 
-
-        private fun create(name: String, inAce: Boolean): DnsName {
+        private fun create(
+            name: String,
+            inAce: Boolean,
+        ): DnsName {
             var name = name
             val rawAce: String
             if (name.isEmpty()) {
@@ -111,12 +107,13 @@ data class DnsName(
                     name = name.subSequence(0, nameLastPos).toString()
                 }
 
-                rawAce = if (inAce) {
-                    // Name is already in ACE format.
-                    name
-                } else {
-                    DnsUtility.toASCII(name)
-                }
+                rawAce =
+                    if (inAce) {
+                        // Name is already in ACE format.
+                        name
+                    } else {
+                        DnsUtility.toASCII(name)
+                    }
             }
 
             val ace = rawAce.lowercase()
@@ -156,7 +153,10 @@ data class DnsName(
             return root!!
         }
 
-        private fun labelsToString(labels: MutableList<DnsLabel>, stringLength: Int): String {
+        private fun labelsToString(
+            labels: MutableList<DnsLabel>,
+            stringLength: Int,
+        ): String {
             val sb = StringBuilder(stringLength)
             for (i in labels.indices.reversed()) {
                 sb.append(labels[i]).append('.')
@@ -168,10 +168,11 @@ data class DnsName(
         private fun getLabels(ace: String): MutableList<DnsLabel> {
             val labels: MutableList<String> = mutableListOf()
 
-            ace.split(
-                LABEL_SEP_REGEX.toRegex(),
-                MAX_LABELS.coerceAtLeast(0)
-            ).forEach { text -> labels.add(text) }
+            ace
+                .split(
+                    LABEL_SEP_REGEX.toRegex(),
+                    MAX_LABELS.coerceAtLeast(0),
+                ).forEach { text -> labels.add(text) }
 
             // Reverse the labels, so that 'foo, example, org' becomes 'org, example, foo'.
             for (i in 0..<labels.size / 2) {
@@ -183,14 +184,9 @@ data class DnsName(
             return DnsLabel.from(labels)
         }
 
+        fun from(name: CharSequence): DnsName = Companion.from(name.toString())
 
-        fun from(name: CharSequence): DnsName {
-            return Companion.from(name.toString())
-        }
-
-        private fun from(name: String): DnsName {
-            return create(name, false)
-        }
+        private fun from(name: String): DnsName = create(name, false)
 
         /**
          * Create a DNS name by "concatenating" the child under the parent name. The child can also be seen as the "left"
@@ -205,7 +201,10 @@ data class DnsName(
          * @param parent the parent DNS name.
          * @return the resulting of DNS name.
          */
-        private fun from(child: DnsName, parent: DnsName): DnsName {
+        private fun from(
+            child: DnsName,
+            parent: DnsName,
+        ): DnsName {
             val rawLabels: MutableList<DnsLabel> = mutableListOf()
             rawLabels.addAll(parent.rawLabels)
             rawLabels.addAll(child.rawLabels)
@@ -221,7 +220,10 @@ data class DnsName(
          * @return The domain name string.
          */
 
-        fun parse(dis: Buffer, data: ByteArray): DnsName {
+        fun parse(
+            dis: Buffer,
+            data: ByteArray,
+        ): DnsName {
             var c = dis.readByte().toInt()
             if ((c and 0xc0) == 0xc0) {
                 c = ((c and 0x3f) shl 8) + dis.readByte()
@@ -251,7 +253,11 @@ data class DnsName(
          * @throws IllegalStateException on cycles.
          */
         @Throws(IllegalStateException::class)
-        private fun parse(data: ByteArray, offset: Int, jumps: HashSet<Int?>): DnsName {
+        private fun parse(
+            data: ByteArray,
+            offset: Int,
+            jumps: HashSet<Int?>,
+        ): DnsName {
             var c = data[offset].toInt() and 0xff
             if ((c and 0xc0) == 0xc0) {
                 c = ((c and 0x3f) shl 8) + (data[offset + 1].toInt() and 0xff)
@@ -270,8 +276,6 @@ data class DnsName(
             return from(child, parent)
         }
 
-        private fun isRootLabel(ace: String): Boolean {
-            return ace.isEmpty() || ace == "."
-        }
+        private fun isRootLabel(ace: String): Boolean = ace.isEmpty() || ace == "."
     }
 }

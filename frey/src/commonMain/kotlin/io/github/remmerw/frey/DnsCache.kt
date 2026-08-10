@@ -29,15 +29,14 @@ class DnsCache {
      */
     private var hitCount = 0L
 
-
-    private fun putNormalized(q: DnsMessage, result: DnsQueryResult) {
+    private fun putNormalized(
+        q: DnsMessage,
+        result: DnsQueryResult,
+    ) {
         backend[q] = DnsQueryResult(result.response)
     }
 
-
     private fun getNormalized(q: DnsMessage): DnsQueryResult? {
-
-
         val result = backend[q]
 
         if (result == null) {
@@ -63,7 +62,6 @@ class DnsCache {
             hitCount++
             return result
         }
-
     }
 
     /**
@@ -73,7 +71,10 @@ class DnsCache {
      * @param query  The query message containing a question.
      * @param result The DNS query result.
      */
-    fun put(query: DnsMessage, result: DnsQueryResult) {
+    fun put(
+        query: DnsMessage,
+        result: DnsQueryResult,
+    ) {
         putNormalized(query.asNormalizedVersion(), result)
     }
 
@@ -83,8 +84,5 @@ class DnsCache {
      * @param query The query message containing a question.
      * @return The dns message.
      */
-    fun get(query: DnsMessage): DnsQueryResult? {
-        return getNormalized(query.asNormalizedVersion())
-    }
-
+    fun get(query: DnsMessage): DnsQueryResult? = getNormalized(query.asNormalizedVersion())
 }

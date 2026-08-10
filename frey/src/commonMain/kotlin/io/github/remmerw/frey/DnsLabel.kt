@@ -2,7 +2,6 @@ package io.github.remmerw.frey
 
 import kotlinx.io.Buffer
 
-
 /**
  * A DNS label is an individual component of a DNS name. Labels are usually shown separated by dots.
  *
@@ -20,10 +19,10 @@ import kotlinx.io.Buffer
  * @see [RFC 5890 § 2.2. DNS-Related Terminology](https://tools.ietf.org/html/rfc5890.section-2.2)
  */
 
-data class DnsLabel(val label: String) {
-    fun length(): Int {
-        return toSafeString().length
-    }
+data class DnsLabel(
+    val label: String,
+) {
+    fun length(): Int = toSafeString().length
 
     private fun toSafeString(): String {
         // The default implementation assumes that toString() returns a safe
@@ -32,10 +31,7 @@ data class DnsLabel(val label: String) {
         return toString()
     }
 
-
-    override fun toString(): String {
-        return toSafeRepresentation(label)
-    }
+    override fun toString(): String = toSafeRepresentation(label)
 
     fun asLowercaseVariant(): DnsLabel {
         val lowercaseLabel = label.lowercase()
@@ -48,7 +44,6 @@ data class DnsLabel(val label: String) {
         buffer.write(byteCache, 0, byteCache.size)
     }
 
-
     companion object {
         /**
          * The maximum length of a DNS label in octets.
@@ -57,14 +52,12 @@ data class DnsLabel(val label: String) {
          */
         const val MAX_LABEL_LENGTH_IN_OCTETS: Int = 63
 
-
         fun create(label: String): DnsLabel {
             val byteCache: ByteArray = label.encodeToByteArray()
 
             require(byteCache.size <= MAX_LABEL_LENGTH_IN_OCTETS) { label }
             return DnsLabel(label)
         }
-
 
         fun isReservedLdhLabel(label: String): Boolean {
             if (!isLdhLabel(label)) {
@@ -73,10 +66,7 @@ data class DnsLabel(val label: String) {
             return isReservedLdhLabelInternal(label)
         }
 
-        fun isReservedLdhLabelInternal(label: String): Boolean {
-            return label.length >= 4 && label[2] == '-' && label[3] == '-'
-        }
-
+        fun isReservedLdhLabelInternal(label: String): Boolean = label.length >= 4 && label[2] == '-' && label[3] == '-'
 
         private fun from(label: String): DnsLabel {
             require(!(label.isEmpty())) { "Label is null or empty" }
@@ -87,7 +77,6 @@ data class DnsLabel(val label: String) {
 
             return fromNonLdhLabel(label)
         }
-
 
         fun isLdhLabel(label: String): Boolean {
             if (label.isEmpty()) {
@@ -127,9 +116,7 @@ data class DnsLabel(val label: String) {
             return label.take(2).lowercase() == "xn"
         }
 
-        fun isUnderscoreLabelInternal(label: String): Boolean {
-            return label[0] == '_'
-        }
+        fun isUnderscoreLabelInternal(label: String): Boolean = label[0] == '_'
 
         fun fromNonLdhLabel(label: String): DnsLabel {
             if (isUnderscoreLabelInternal(label)) {
@@ -141,7 +128,6 @@ data class DnsLabel(val label: String) {
             return create(label)
         }
 
-
         fun from(labels: List<String>): MutableList<DnsLabel> {
             val res: MutableList<DnsLabel> = mutableListOf()
 
@@ -152,9 +138,7 @@ data class DnsLabel(val label: String) {
             return res
         }
 
-        private fun isIdnAcePrefixed(string: String): Boolean {
-            return string.lowercase().startsWith("xn--")
-        }
+        private fun isIdnAcePrefixed(string: String): Boolean = string.lowercase().startsWith("xn--")
 
         private fun toSafeRepresentation(dnsLabel: String): String {
             if (consistsOnlyOfLettersDigitsHypenAndUnderscore(dnsLabel)) {
@@ -170,12 +154,11 @@ data class DnsLabel(val label: String) {
                     continue
                 }
 
-
                 // Let's see if we found and unsafe char we want to replace.
                 when (c) {
                     '.' -> sb.append('●')
                     '\\' -> sb.append('⧷')
-                    '\u007f' ->  // Convert DEL to U+2421 SYMBOL FOR DELETE
+                    '\u007f' -> // Convert DEL to U+2421 SYMBOL FOR DELETE
                         sb.append('␡')
 
                     ' ' -> sb.append('␣')
@@ -188,9 +171,13 @@ data class DnsLabel(val label: String) {
                         } else if (c.code < 127) {
                             // Everything smaller than 127 is now safe to directly append.
                             sb.append(c)
-                        } else require(c.code <= 255) {
-                            ("The string '" + dnsLabel
-                                    + "' contains characters outside the 8-bit range: " + c + " at position " + i)
+                        } else {
+                            require(c.code <= 255) {
+                                (
+                                    "The string '" + dnsLabel +
+                                        "' contains characters outside the 8-bit range: " + c + " at position " + i
+                                )
+                            }
                         }
 
                         // Everything that did not match the previous conditions is explicitly escaped.
@@ -207,16 +194,19 @@ data class DnsLabel(val label: String) {
             return sb.toString()
         }
 
-        private fun isLdhOrMaybeUnderscore(c: Char, underscore: Boolean): Boolean {
-            return (c in 'a'..'z')
-                    || (c in 'A'..'Z')
-                    || (c in '0'..'9')
-                    || c == '-' || (underscore && c == '_')
-        }
+        private fun isLdhOrMaybeUnderscore(
+            c: Char,
+            underscore: Boolean,
+        ): Boolean =
+            (c in 'a'..'z') ||
+                (c in 'A'..'Z') ||
+                (c in '0'..'9') ||
+                c == '-' ||
+                (underscore && c == '_')
 
         private fun consistsOnlyOfLdhAndMaybeUnderscore(
             string: String,
-            underscore: Boolean
+            underscore: Boolean,
         ): Boolean {
             for (element in string) {
                 val c: Char = element
@@ -228,13 +218,10 @@ data class DnsLabel(val label: String) {
             return true
         }
 
-        private fun consistsOnlyOfLettersDigitsAndHypen(string: String): Boolean {
-            return consistsOnlyOfLdhAndMaybeUnderscore(string, false)
-        }
+        private fun consistsOnlyOfLettersDigitsAndHypen(string: String): Boolean = consistsOnlyOfLdhAndMaybeUnderscore(string, false)
 
-        private fun consistsOnlyOfLettersDigitsHypenAndUnderscore(string: String): Boolean {
-            return consistsOnlyOfLdhAndMaybeUnderscore(string, true)
-        }
+        private fun consistsOnlyOfLettersDigitsHypenAndUnderscore(string: String): Boolean =
+            consistsOnlyOfLdhAndMaybeUnderscore(string, true)
 
         fun isLeadingOrTrailingLabelInternal(label: String): Boolean {
             if (label.isEmpty()) {

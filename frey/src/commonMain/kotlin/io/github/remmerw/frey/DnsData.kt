@@ -9,11 +9,7 @@ import kotlinx.io.readByteArray
 interface DnsData {
     fun bytes(): ByteArray
 
-
-    fun length(): Int {
-        return bytes().size
-    }
-
+    fun length(): Int = bytes().size
 
     fun toBuffer(buffer: Buffer) {
         buffer.write(bytes())
@@ -23,7 +19,9 @@ interface DnsData {
      * OPT payload (see RFC 2671 for details).
      */
 
-    data class OPT(val variablePart: MutableList<DnsEdns.Option>?) : DnsData {
+    data class OPT(
+        val variablePart: MutableList<DnsEdns.Option>?,
+    ) : DnsData {
         override fun bytes(): ByteArray {
             val dos = Buffer()
             try {
@@ -38,8 +36,10 @@ interface DnsData {
         }
 
         companion object {
-
-            fun parse(dis: Buffer, payloadLength: Int): OPT {
+            fun parse(
+                dis: Buffer,
+                payloadLength: Int,
+            ): OPT {
                 val variablePart: MutableList<DnsEdns.Option>?
                 if (payloadLength == 0) {
                     variablePart = mutableListOf()
@@ -63,10 +63,10 @@ interface DnsData {
         }
     }
 
-
     @Suppress("ArrayInDataClass")
-    data class A(val address: ByteArray) : DnsData {
-
+    data class A(
+        val address: ByteArray,
+    ) : DnsData {
         init {
             require(address.size == 4) { "IPv6 address in AAAA record is always 16 byte" }
         }
@@ -79,21 +79,22 @@ interface DnsData {
                     sb.append(':')
                 }
                 sb.append(
-                    ((address[i].toInt() and 0xff) shl 8).plus(address[i + 1].toInt() and 0xff)
-                        .toHexString()
+                    ((address[i].toInt() and 0xff) shl 8)
+                        .plus(address[i + 1].toInt() and 0xff)
+                        .toHexString(),
                 )
                 i += 2
             }
             return sb.toString()
         }
 
-        override fun bytes(): ByteArray {
-            return address
-        }
+        override fun bytes(): ByteArray = address
 
         companion object {
-
-            fun parse(dis: Buffer, length: Int): A {
+            fun parse(
+                dis: Buffer,
+                length: Int,
+            ): A {
                 val address = dis.readByteArray(length)
                 return A(address)
             }
@@ -101,8 +102,9 @@ interface DnsData {
     }
 
     @Suppress("ArrayInDataClass")
-    data class AAAA(val address: ByteArray) : DnsData {
-
+    data class AAAA(
+        val address: ByteArray,
+    ) : DnsData {
         init {
             require(address.size == 16) { "IPv6 address in AAAA record is always 16 byte" }
         }
@@ -115,21 +117,22 @@ interface DnsData {
                     sb.append(':')
                 }
                 sb.append(
-                    ((address[i].toInt() and 0xff) shl 8).plus(address[i + 1].toInt() and 0xff)
-                        .toHexString()
+                    ((address[i].toInt() and 0xff) shl 8)
+                        .plus(address[i + 1].toInt() and 0xff)
+                        .toHexString(),
                 )
                 i += 2
             }
             return sb.toString()
         }
 
-        override fun bytes(): ByteArray {
-            return address
-        }
+        override fun bytes(): ByteArray = address
 
         companion object {
-
-            fun parse(dis: Buffer, length: Int): AAAA {
+            fun parse(
+                dis: Buffer,
+                length: Int,
+            ): AAAA {
                 val address = dis.readByteArray(length)
                 return AAAA(address)
             }
@@ -142,7 +145,9 @@ interface DnsData {
      * but not always.
      */
     @Suppress("ArrayInDataClass")
-    data class TXT(val blob: ByteArray) : DnsData {
+    data class TXT(
+        val blob: ByteArray,
+    ) : DnsData {
         val text: String
             get() {
                 val sb = StringBuilder()
@@ -182,42 +187,40 @@ interface DnsData {
                 return extents
             }
 
+        override fun toString(): String = "\"" + this.text + "\""
 
-        override fun toString(): String {
-            return "\"" + this.text + "\""
-        }
-
-        override fun bytes(): ByteArray {
-            return blob
-        }
+        override fun bytes(): ByteArray = blob
 
         companion object {
-
-            fun parse(dis: Buffer, length: Int): TXT {
+            fun parse(
+                dis: Buffer,
+                length: Int,
+            ): TXT {
                 val blob = dis.readByteArray(length)
                 return TXT(blob)
             }
         }
     }
 
-
     @Suppress("ArrayInDataClass")
-    data class UNKNOWN(val data: ByteArray) : DnsData {
-        override fun bytes(): ByteArray {
-            return data
-        }
+    data class UNKNOWN(
+        val data: ByteArray,
+    ) : DnsData {
+        override fun bytes(): ByteArray = data
 
         companion object {
-
-            private fun create(dis: Buffer, payloadLength: Int): UNKNOWN {
+            private fun create(
+                dis: Buffer,
+                payloadLength: Int,
+            ): UNKNOWN {
                 val data = dis.readByteArray(payloadLength)
                 return UNKNOWN(data)
             }
 
-
-            fun parse(dis: Buffer, payloadLength: Int): UNKNOWN {
-                return create(dis, payloadLength)
-            }
+            fun parse(
+                dis: Buffer,
+                payloadLength: Int,
+            ): UNKNOWN = create(dis, payloadLength)
         }
     }
 }
