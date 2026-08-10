@@ -128,9 +128,6 @@ data class DnsRecord(
      *
      * @param value The binary value of this DNS class.
      */(
-        /**
-         * The binary value of this dns class.
-         */
         val value: Int
     ) {
         /**
