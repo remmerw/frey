@@ -35,7 +35,7 @@ class DnsResolverTest {
         result.forEach { text -> println(text) }
     }
 
-    @Test
+    // Todo IPv6 is not available on every test platform @Test
     fun testAAAARecord() {
         val resolver = DnsResolver(defaultDnsServerIpv6())
         val addresses = resolver.retrieveAAAARecord("www.welt.de")
