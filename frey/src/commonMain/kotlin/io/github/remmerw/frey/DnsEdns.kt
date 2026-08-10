@@ -3,7 +3,6 @@ package io.github.remmerw.frey
 import io.github.remmerw.frey.DnsData.OPT
 import kotlinx.io.Buffer
 
-
 /**
  * EDNS - Extension Mechanism for DNS.
  *
@@ -11,34 +10,42 @@ import kotlinx.io.Buffer
 ](https://tools.ietf.org/html/rfc6891) */
 
 data class DnsEdns(
-    val udpPayloadSize: Int, val extendedRcode: Int, val version: Int,
-    val flags: Int, val variablePart: MutableList<Option>
+    val udpPayloadSize: Int,
+    val extendedRcode: Int,
+    val version: Int,
+    val flags: Int,
+    val variablePart: MutableList<Option>,
 ) {
     fun asRecord(): DnsRecord {
         var optFlags = flags.toLong()
         optFlags = optFlags or (extendedRcode.toLong() shl 8)
         optFlags = optFlags or (version.toLong() shl 16)
         return DnsRecord.create(
-            DnsName.root(), DnsRecord.TYPE.OPT,
-            udpPayloadSize, optFlags, OPT(variablePart)
+            DnsName.root(),
+            DnsRecord.TYPE.OPT,
+            udpPayloadSize,
+            optFlags,
+            OPT(variablePart),
         )
     }
-
 
     /**
      * The EDNS option code.
      *
      * @see [IANA - DNS EDNS0 Option Codes
-    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-11) */
-    enum class OptionCode(val asInt: Int) {
+     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-11) */
+    enum class OptionCode(
+        val asInt: Int,
+    ) {
         UNKNOWN(-1),
         NSID(3),
         ;
 
         companion object {
-            private val INVERSE_LUT: MutableMap<Int?, OptionCode?> = HashMap(
-                entries.size
-            )
+            private val INVERSE_LUT: MutableMap<Int?, OptionCode?> =
+                HashMap(
+                    entries.size,
+                )
 
             init {
                 for (optionCode in entries) {
@@ -58,7 +65,6 @@ data class DnsEdns(
         var udpPayloadSize = 0
         var dnssecOk = false
 
-
         fun setUdpPayloadSize(udpPayloadSize: Int): EdnsBuilder {
             require(udpPayloadSize <= 0xffff) { "UDP payload size must not be greater than 65536, was $udpPayloadSize" }
             this.udpPayloadSize = udpPayloadSize
@@ -70,32 +76,36 @@ data class DnsEdns(
             return this
         }
 
-        fun build(): DnsEdns {
-            return create(this)
-        }
+        fun build(): DnsEdns = create(this)
     }
 
-
     @Suppress("ArrayInDataClass")
-    data class Option(val optionCode: Int, val optionLength: Int, val optionData: ByteArray) {
-
+    data class Option(
+        val optionCode: Int,
+        val optionLength: Int,
+        val optionData: ByteArray,
+    ) {
         fun transferTo(buffer: Buffer) {
             buffer.writeShort(optionCode.toShort())
             buffer.writeShort(optionLength.toShort())
             buffer.write(optionData)
         }
 
-
         companion object {
-            fun create(optionCode: Int, optionData: ByteArray): Option {
-                return Option(optionCode, optionData.size, optionData)
-            }
+            fun create(
+                optionCode: Int,
+                optionData: ByteArray,
+            ): Option = Option(optionCode, optionData.size, optionData)
 
-            fun create(optionData: ByteArray, optionCode: OptionCode): Option {
-                return Option(optionCode.asInt, optionData.size, optionData)
-            }
+            fun create(
+                optionData: ByteArray,
+                optionCode: OptionCode,
+            ): Option = Option(optionCode.asInt, optionData.size, optionData)
 
-            fun parse(intOptionCode: Int, optionData: ByteArray): Option {
+            fun parse(
+                intOptionCode: Int,
+                optionData: ByteArray,
+            ): Option {
                 val optionCode = OptionCode.from(intOptionCode)
                 return if (optionCode == OptionCode.NSID) {
                     create(optionData, optionCode)
@@ -113,7 +123,6 @@ data class DnsEdns(
         private const val FLAG_DNSSEC_OK = 0x8000
         private val VARIABLE_PART = ArrayList<Option>()
 
-
         private fun create(builder: EdnsBuilder): DnsEdns {
             var flags = 0
             if (builder.dnssecOk) {
@@ -122,8 +131,6 @@ data class DnsEdns(
             return DnsEdns(builder.udpPayloadSize, 0, 0, flags, VARIABLE_PART)
         }
 
-        fun builder(): EdnsBuilder {
-            return EdnsBuilder()
-        }
+        fun builder(): EdnsBuilder = EdnsBuilder()
     }
 }

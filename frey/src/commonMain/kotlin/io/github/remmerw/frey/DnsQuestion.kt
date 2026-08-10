@@ -8,8 +8,10 @@ import kotlinx.io.readByteArray
  */
 
 data class DnsQuestion(
-    val name: DnsName?, val type: DnsRecord.TYPE?, val clazz: DnsRecord.CLASS?,
-    val unicastQuery: Boolean
+    val name: DnsName?,
+    val type: DnsRecord.TYPE?,
+    val clazz: DnsRecord.CLASS?,
+    val unicastQuery: Boolean,
 ) {
     /**
      * Generate a binary packet for this dns question.
@@ -25,12 +27,11 @@ data class DnsQuestion(
         return buffer.readByteArray()
     }
 
-
     companion object {
-        fun create(name: DnsName, type: DnsRecord.TYPE): DnsQuestion {
-            return DnsQuestion(name, type, DnsRecord.CLASS.IN, false)
-        }
-
+        fun create(
+            name: DnsName,
+            type: DnsRecord.TYPE,
+        ): DnsQuestion = DnsQuestion(name, type, DnsRecord.CLASS.IN, false)
 
         /**
          * Parse a byte array and rebuild the dns question from it.
@@ -39,13 +40,15 @@ data class DnsQuestion(
          * @param data The plain data (for dns name references).
 
          */
-        fun parse(dis: Buffer, data: ByteArray): DnsQuestion {
-            return DnsQuestion(
+        fun parse(
+            dis: Buffer,
+            data: ByteArray,
+        ): DnsQuestion =
+            DnsQuestion(
                 DnsName.parse(dis, data),
                 DnsRecord.TYPE.getType(dis.readShort().toInt()),
-                DnsRecord.CLASS.getClass(dis.readShort().toInt()), false
+                DnsRecord.CLASS.getClass(dis.readShort().toInt()),
+                false,
             )
-        }
     }
 }
-

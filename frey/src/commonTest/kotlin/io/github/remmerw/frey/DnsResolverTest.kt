@@ -5,9 +5,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-
 class DnsResolverTest {
-
     @Test
     fun testDnsAddr() {
         val resolver = DnsResolver()
@@ -24,7 +22,6 @@ class DnsResolverTest {
         assertNotNull(result)
         assertTrue(result.isEmpty())
     }
-
 
     @Test
     fun testTXTRecord() {

@@ -10,7 +10,7 @@ import kotlin.random.Random
  */
 class DnsClient internal constructor(
     private val dnsServer: List<InetSocketAddress>,
-    private val dnsCache: DnsCache
+    private val dnsCache: DnsCache,
 ) {
     /**
      * The internal random class for sequence generation.
@@ -19,7 +19,10 @@ class DnsClient internal constructor(
 
     private val nonRaServers: MutableSet<InetSocketAddress> = mutableSetOf()
 
-    fun onResponse(requestMessage: DnsMessage, responseMessage: DnsQueryResult) {
+    fun onResponse(
+        requestMessage: DnsMessage,
+        responseMessage: DnsQueryResult,
+    ) {
         val q = requestMessage.question
         if (isResponseCacheable(q, responseMessage)) {
             dnsCache.put(requestMessage.asNormalizedVersion(), responseMessage)
@@ -35,11 +38,13 @@ class DnsClient internal constructor(
      * @return The response (or null on timeout/error).
      */
 
-    fun query(name: CharSequence, type: DnsRecord.TYPE): DnsQueryResult {
+    fun query(
+        name: CharSequence,
+        type: DnsRecord.TYPE,
+    ): DnsQueryResult {
         val q: DnsQuestion = DnsQuestion.create(from(name), type)
         return query(q)
     }
-
 
     private fun query(q: DnsQuestion): DnsQueryResult {
         val query = buildMessage(q)
@@ -60,13 +65,14 @@ class DnsClient internal constructor(
         return message
     }
 
-
-    private fun query(query: DnsMessage, address: InetSocketAddress): DnsQueryResult {
+    private fun query(
+        query: DnsMessage,
+        address: InetSocketAddress,
+    ): DnsQueryResult {
         val responseMessage: DnsQueryResult = DnsUtility.query(query, address)
         onResponse(query, responseMessage)
         return responseMessage
     }
-
 
     private fun query(queryBuilder: DnsMessage.Builder): DnsQueryResult {
         val q: DnsMessage = newQuestion(queryBuilder).build()
@@ -79,8 +85,6 @@ class DnsClient internal constructor(
         if (dnsQueryResult != null) {
             return dnsQueryResult
         }
-
-
 
         for (dns in dnsServer) {
             if (nonRaServers.contains(dns)) {
@@ -98,10 +102,10 @@ class DnsClient internal constructor(
                 val newRaServer = nonRaServers.add(dns)
                 if (newRaServer) {
                     println(
-                        "The DNS server " + dns
-                                + " returned a response without the \"recursion available\" (RA) flag " +
-                                "set. This likely indicates a misconfiguration because the " +
-                                "server is not suitable for DNS resolution"
+                        "The DNS server " + dns +
+                            " returned a response without the \"recursion available\" (RA) flag " +
+                            "set. This likely indicates a misconfiguration because the " +
+                            "server is not suitable for DNS resolution",
                     )
                 }
                 continue
@@ -112,7 +116,7 @@ class DnsClient internal constructor(
                 else -> {
                     println(
                         "Response from " + dns + " asked for " + q.question +
-                                " with error code: " + responseMessage.responseCode + '.'
+                            " with error code: " + responseMessage.responseCode + '.',
                     )
                 }
             }
@@ -131,7 +135,10 @@ class DnsClient internal constructor(
          * @param result The DNS query result.
          * @return True, if the response should be cached, false otherwise.
          */
-        private fun isResponseCacheable(q: DnsQuestion, result: DnsQueryResult): Boolean {
+        private fun isResponseCacheable(
+            q: DnsQuestion,
+            result: DnsQueryResult,
+        ): Boolean {
             val dnsMessage = result.response
             for (dnsRecord in dnsMessage.answerSection) {
                 if (dnsRecord.isAnswer(q)) {
@@ -144,7 +151,8 @@ class DnsClient internal constructor(
         private fun newQuestion(message: DnsMessage.Builder): DnsMessage.Builder {
             message.setRecursionDesired()
             val askForDnssec = false
-            message.ednsBuilder.setUdpPayloadSize(DnsUtility.UDP_PAYLOAD_SIZE)
+            message.ednsBuilder
+                .setUdpPayloadSize(DnsUtility.UDP_PAYLOAD_SIZE)
                 .setDnssecOk(askForDnssec)
             return message
         }

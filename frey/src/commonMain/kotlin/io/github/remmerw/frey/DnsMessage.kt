@@ -16,20 +16,28 @@ import kotlin.time.TimeSource.Monotonic.ValueTimeMark
  */
 @Suppress("unused")
 data class DnsMessage(
-    val id: UShort, val opcode: OPCODE?, val responseCode: ResponseCode?,
-    val receiveTimestamp: ValueTimeMark, val optRrPosition: Int, val recursionAvailable: Boolean,
-    val qr: Boolean, val authoritativeAnswer: Boolean, val truncated: Boolean,
-    val recursionDesired: Boolean, val authenticData: Boolean,
-    val checkingDisabled: Boolean, val questions: List<DnsQuestion>?,
+    val id: UShort,
+    val opcode: OPCODE?,
+    val responseCode: ResponseCode?,
+    val receiveTimestamp: ValueTimeMark,
+    val optRrPosition: Int,
+    val recursionAvailable: Boolean,
+    val qr: Boolean,
+    val authoritativeAnswer: Boolean,
+    val truncated: Boolean,
+    val recursionDesired: Boolean,
+    val authenticData: Boolean,
+    val checkingDisabled: Boolean,
+    val questions: List<DnsQuestion>?,
     val answerSection: List<DnsRecord>,
-    val authoritySection: List<DnsRecord>?, val additionalSection: List<DnsRecord>?
+    val authoritySection: List<DnsRecord>?,
+    val additionalSection: List<DnsRecord>?,
 ) {
     fun writeTo(buffer: Buffer) {
         val bytes = serialize()
         buffer.writeShort(bytes.size.toShort())
         buffer.write(bytes.readByteArray())
     }
-
 
     fun serialize(): Buffer {
         val buffer = Buffer()
@@ -110,7 +118,6 @@ data class DnsMessage(
     val question: DnsQuestion
         get() = questions!![0]
 
-
     val answersMinTtl: Long
         /**
          * Get the minimum TTL from all answers in seconds.
@@ -125,10 +132,7 @@ data class DnsMessage(
             return answersMinTtlCache
         }
 
-
-    fun asNormalizedVersion(): DnsMessage {
-        return normalized(this)
-    }
+    fun asNormalizedVersion(): DnsMessage = normalized(this)
 
     override fun hashCode(): Int {
         val bytes = serialize()
@@ -154,7 +158,9 @@ data class DnsMessage(
      * IANA Domain Name System
      * @see [RFC 6895 § 2.3](http://tools.ietf.org/html/rfc6895.section-2.3)]
      * (http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-6) */
-    enum class ResponseCode(value: Int) {
+    enum class ResponseCode(
+        value: Int,
+    ) {
         NO_ERROR(0),
         FORMAT_ERR(1),
         SERVER_FAIL(2),
@@ -189,7 +195,7 @@ data class DnsMessage(
              */
             private val INVERSE_LUT: MutableMap<Int?, ResponseCode?> =
                 HashMap(
-                    entries.size
+                    entries.size,
                 )
 
             init {
@@ -218,7 +224,7 @@ data class DnsMessage(
      *
      * @see [
      * IANA Domain Name System
-    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-5) */
+     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-5) */
     enum class OPCODE {
         QUERY,
         INVERSE_QUERY,
@@ -312,7 +318,6 @@ data class DnsMessage(
             return this
         }
 
-
         /**
          * Set the question part of this message.
          *
@@ -324,16 +329,12 @@ data class DnsMessage(
             return this
         }
 
-
-        fun build(): DnsMessage {
-            return create(this)
-        }
+        fun build(): DnsMessage = create(this)
     }
 
     companion object {
         private val QUESTIONS_EMPTY: List<DnsQuestion> = emptyList()
         private val RECORDS_EMPTY: List<DnsRecord> = emptyList()
-
 
         fun parse(source: Source): DnsMessage {
             val data = source.readByteArray()
@@ -375,12 +376,22 @@ data class DnsMessage(
             val optRrPosition: Int = getOptRrPosition(additionalSection)
 
             return DnsMessage(
-                id, opcode, responseCode,
-                receiveTimestamp, optRrPosition, recursionAvailable,
-                qr, authoritativeAnswer, truncated,
-                recursionDesired, authenticData,
-                checkingDisabled, questions, answerSection,
-                authoritySection, additionalSection
+                id,
+                opcode,
+                responseCode,
+                receiveTimestamp,
+                optRrPosition,
+                recursionAvailable,
+                qr,
+                authoritativeAnswer,
+                truncated,
+                recursionDesired,
+                authenticData,
+                checkingDisabled,
+                questions,
+                answerSection,
+                authoritySection,
+                additionalSection,
             )
         }
 
@@ -389,16 +400,25 @@ data class DnsMessage(
          *
          * @param message the message of which normalized version should be constructed.
          */
-        private fun normalized(message: DnsMessage): DnsMessage {
-            return DnsMessage(
-                0.toUShort(), message.opcode, message.responseCode,
-                message.receiveTimestamp, message.optRrPosition, message.recursionAvailable,
-                message.qr, message.authoritativeAnswer, message.truncated,
-                message.recursionDesired, message.authenticData,
-                message.checkingDisabled, message.questions, message.answerSection,
-                message.authoritySection, message.additionalSection
+        private fun normalized(message: DnsMessage): DnsMessage =
+            DnsMessage(
+                0.toUShort(),
+                message.opcode,
+                message.responseCode,
+                message.receiveTimestamp,
+                message.optRrPosition,
+                message.recursionAvailable,
+                message.qr,
+                message.authoritativeAnswer,
+                message.truncated,
+                message.recursionDesired,
+                message.authenticData,
+                message.checkingDisabled,
+                message.questions,
+                message.answerSection,
+                message.authoritySection,
+                message.additionalSection,
             )
-        }
 
         private fun create(builder: Builder): DnsMessage {
             val id = builder.id
@@ -412,11 +432,12 @@ data class DnsMessage(
             val recursionAvailable = false
             val authenticData = false
             val checkingDisabled = false
-            val questions: List<DnsQuestion> = if (builder.questions == null) {
-                QUESTIONS_EMPTY
-            } else {
-                builder.questions!!
-            }
+            val questions: List<DnsQuestion> =
+                if (builder.questions == null) {
+                    QUESTIONS_EMPTY
+                } else {
+                    builder.questions!!
+                }
 
             val additionalSection: List<DnsRecord>
 
@@ -428,16 +449,28 @@ data class DnsMessage(
             if (optRrPosition != -1) {
                 // Verify that there are no further OPT records but the one we already found.
                 for (i in optRrPosition + 1..<additionalSection.size) {
-                    require(additionalSection[i].type != DnsRecord.TYPE.OPT) { "There must be only one OPT pseudo RR in the additional section" }
+                    require(
+                        additionalSection[i].type != DnsRecord.TYPE.OPT,
+                    ) { "There must be only one OPT pseudo RR in the additional section" }
                 }
             }
             return DnsMessage(
-                id, opcode, responseCode,
-                receiveTimestamp, optRrPosition, recursionAvailable,
-                qr, authoritativeAnswer, truncated,
-                recursionDesired, authenticData,
-                checkingDisabled, questions, RECORDS_EMPTY,
-                RECORDS_EMPTY, additionalSection
+                id,
+                opcode,
+                responseCode,
+                receiveTimestamp,
+                optRrPosition,
+                recursionAvailable,
+                qr,
+                authoritativeAnswer,
+                truncated,
+                recursionDesired,
+                authenticData,
+                checkingDisabled,
+                questions,
+                RECORDS_EMPTY,
+                RECORDS_EMPTY,
+                additionalSection,
             )
         }
 
@@ -453,9 +486,6 @@ data class DnsMessage(
             return optRrPosition
         }
 
-        fun builder(): Builder {
-            return Builder()
-        }
+        fun builder(): Builder = Builder()
     }
 }
-

@@ -7,15 +7,18 @@ import kotlinx.io.readByteArray
  * A generic DNS record.
  */
 data class DnsRecord(
-    val name: DnsName, val type: TYPE?, val clazz: CLASS?, val clazzValue: Int, val ttl: Long,
+    val name: DnsName,
+    val type: TYPE?,
+    val clazz: CLASS?,
+    val clazzValue: Int,
+    val ttl: Long,
     /**
      * The payload data, usually a subclass of data (A, AAAA, CNAME, ...).
      *
      * @return The payload data.
      */
-    val payload: DnsData
+    val payload: DnsData,
 ) {
-
     private fun toBuffer(buffer: Buffer) {
         checkNotNull(this.payload) { "Empty Record has no byte representation" }
 
@@ -29,9 +32,11 @@ data class DnsRecord(
     }
 
     fun toByteArray(): ByteArray {
-        val totalSize = (name.size()
-                + 10 // 2 byte short type + 2 byte short classValue + 4 byte int ttl + 2 byte short payload length.
-                + payload.length())
+        val totalSize = (
+            name.size() +
+                10 + // 2 byte short type + 2 byte short classValue + 4 byte int ttl + 2 byte short payload length.
+                payload.length()
+        )
 
         val buffer = Buffer()
         toBuffer(buffer)
@@ -44,9 +49,7 @@ data class DnsRecord(
      *
      * @return String
      */
-    override fun toString(): String {
-        return name.rawAce + ".\t" + ttl + '\t' + clazz + '\t' + type + '\t' + this.payload
-    }
+    override fun toString(): String = name.rawAce + ".\t" + ttl + '\t' + clazz + '\t' + type + '\t' + this.payload
 
     /**
      * Check if this record answers a given query.
@@ -54,21 +57,19 @@ data class DnsRecord(
      * @param q The query.
      * @return True if this record is a valid answer.
      */
-    fun isAnswer(q: DnsQuestion): Boolean {
-        return ((q.type == type) || (q.type == TYPE.ANY)) &&
-                ((q.clazz == clazz) || (q.clazz == CLASS.ANY)) &&
-                q.name == name
-    }
-
+    fun isAnswer(q: DnsQuestion): Boolean =
+        ((q.type == type) || (q.type == TYPE.ANY)) &&
+            ((q.clazz == clazz) || (q.clazz == CLASS.ANY)) &&
+            q.name == name
 
     /**
      * The resource record type.
      *
      * @see [
      * IANA DNS Parameters - Resource Record
-    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-4) */
+     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-4) */
     enum class TYPE(
-        val value: Int
+        val value: Int,
     ) {
         UNKNOWN(-1),
         A(1),
@@ -84,13 +85,11 @@ data class DnsRecord(
          * @return The binary value.
          */
 
-
         companion object {
             /**
              * Internal lookup table to map values to types.
              */
             private val INVERSE_LUT: MutableMap<Int, TYPE> = mutableMapOf()
-
 
             init {
                 // Initialize the reverse lookup table.
@@ -116,9 +115,9 @@ data class DnsRecord(
      * The symbolic class of a DNS record (usually [CLASS.IN] for Internet).
      *
      * @see [IANA Domain Name System
-    ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-2) */
+     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-2) */
     enum class CLASS(
-        val value: Int
+        val value: Int,
     ) {
         /**
          * The Internet class. This is the most common class used by todays DNS systems.
@@ -135,7 +134,8 @@ data class DnsRecord(
          */
         HS(4),
         NONE(254),
-        ANY(255);
+        ANY(255),
+        ;
 
         /**
          * Retrieve the binary value of this DNS class.
@@ -163,9 +163,7 @@ data class DnsRecord(
              * @param value The binary DNS class value.
              * @return The symbolic class instance.
              */
-            fun getClass(value: Int): CLASS? {
-                return INVERSE_LUT[value]
-            }
+            fun getClass(value: Int): CLASS? = INVERSE_LUT[value]
         }
     }
 
@@ -175,10 +173,8 @@ data class DnsRecord(
             type: TYPE?,
             clazzValue: Int,
             ttl: Long,
-            payloadDnsData: DnsData
-        ): DnsRecord {
-            return DnsRecord(name, type, CLASS.NONE, clazzValue, ttl, payloadDnsData)
-        }
+            payloadDnsData: DnsData,
+        ): DnsRecord = DnsRecord(name, type, CLASS.NONE, clazzValue, ttl, payloadDnsData)
 
         /**
          * Parse a given record based on the full message data and the current
@@ -189,24 +185,28 @@ data class DnsRecord(
          * @return the record which was parsed.
          */
 
-        fun parse(dis: Buffer, data: ByteArray): DnsRecord {
+        fun parse(
+            dis: Buffer,
+            data: ByteArray,
+        ): DnsRecord {
             val name = DnsName.parse(dis, data)
             val typeValue = dis.readShort().toInt()
             val type: TYPE = TYPE.getType(typeValue)
             val clazzValue = dis.readShort().toInt()
             val clazz: CLASS? = CLASS.getClass(clazzValue and 0x7fff)
-            val ttl = ((dis.readShort().toLong()) shl 16) +
+            val ttl =
+                ((dis.readShort().toLong()) shl 16) +
                     dis.readShort().toInt()
             val payloadLength = dis.readShort().toInt()
-            val payloadDnsData: DnsData = when (type) {
-                TYPE.TXT -> DnsData.TXT.parse(dis, payloadLength)
-                TYPE.OPT -> DnsData.OPT.parse(dis, payloadLength)
-                TYPE.AAAA -> DnsData.AAAA.parse(dis, payloadLength)
-                TYPE.A -> DnsData.A.parse(dis, payloadLength)
-                else -> DnsData.UNKNOWN.parse(dis, payloadLength)
-            }
+            val payloadDnsData: DnsData =
+                when (type) {
+                    TYPE.TXT -> DnsData.TXT.parse(dis, payloadLength)
+                    TYPE.OPT -> DnsData.OPT.parse(dis, payloadLength)
+                    TYPE.AAAA -> DnsData.AAAA.parse(dis, payloadLength)
+                    TYPE.A -> DnsData.A.parse(dis, payloadLength)
+                    else -> DnsData.UNKNOWN.parse(dis, payloadLength)
+                }
             return DnsRecord(name, type, clazz, clazzValue, ttl, payloadDnsData)
         }
     }
 }
-

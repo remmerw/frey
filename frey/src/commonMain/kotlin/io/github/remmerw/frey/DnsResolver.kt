@@ -26,7 +26,9 @@ fun defaultDnsServerIpv4(): List<InetSocketAddress> {
     return list
 }
 
-class DnsResolver(dnsServer: List<InetSocketAddress> = defaultDnsServer()) {
+class DnsResolver(
+    dnsServer: List<InetSocketAddress> = defaultDnsServer(),
+) {
     private val dnsClient = DnsClient(dnsServer, DnsCache())
 
     fun retrieveARecord(host: String): List<ByteArray> {
@@ -44,7 +46,6 @@ class DnsResolver(dnsServer: List<InetSocketAddress> = defaultDnsServer()) {
         }
         return response
     }
-
 
     fun retrieveAAAARecord(host: String): List<ByteArray> {
         val response: MutableList<ByteArray> = mutableListOf()
@@ -103,7 +104,6 @@ class DnsResolver(dnsServer: List<InetSocketAddress> = defaultDnsServer()) {
         }
         return multiAddresses
     }
-
 
     companion object {
         val IPV4_DNS_SERVERS: MutableSet<InetSocketAddress> = mutableSetOf()
