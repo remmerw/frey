@@ -67,12 +67,7 @@ data class DnsRecord(
      * @see [
      * IANA DNS Parameters - Resource Record
     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-4) */
-    enum class TYPE
-    /**
-     * Create a new record type.
-     *
-     * @param value The binary value of this type.
-     */(
+    enum class TYPE(
         val value: Int
     ) {
         UNKNOWN(-1),
@@ -122,12 +117,7 @@ data class DnsRecord(
      *
      * @see [IANA Domain Name System
     ](http://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml.dns-parameters-2) */
-    enum class CLASS
-    /**
-     * Create a new DNS class based on a binary value.
-     *
-     * @param value The binary value of this DNS class.
-     */(
+    enum class CLASS(
         val value: Int
     ) {
         /**
