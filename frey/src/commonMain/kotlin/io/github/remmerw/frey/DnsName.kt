@@ -93,7 +93,7 @@ data class DnsName(
          * @see [RFC 3490 § 3.1 1.](https://www.ietf.org/rfc/rfc3490.txt)
          */
         private const val LABEL_SEP_REGEX = "[.。．｡]"
-        private var ROOT: DnsName? = null
+        private var root: DnsName? = null
 
 
         private fun create(name: String, inAce: Boolean): DnsName {
@@ -150,10 +150,10 @@ data class DnsName(
         }
 
         fun root(): DnsName {
-            if (ROOT == null) {
-                ROOT = create(".", true)
+            if (root == null) {
+                root = create(".", true)
             }
-            return ROOT!!
+            return root!!
         }
 
         private fun labelsToString(labels: MutableList<DnsLabel>, stringLength: Int): String {
