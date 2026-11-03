@@ -5,7 +5,7 @@ ktlint = "14.2.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version= "0.9.1" }
+kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version= "0.9.2" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
 
 [plugins]
